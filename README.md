@@ -19,6 +19,7 @@ This is the clean submission repository for the HHCC 2026 Prototype Development 
 
 ## Repository map
 
+- [`AGENTS.md`](AGENTS.md): repository-wide operating and Git synchronization constraints for coding agents.
 - [`docs/DECISIONS.md`](docs/DECISIONS.md): chronological technical and product decisions.
 - [`docs/superpowers/specs/2026-08-22-repository-bootstrap-design.md`](docs/superpowers/specs/2026-08-22-repository-bootstrap-design.md): approved repository-bootstrap boundary.
 - [`AI_USAGE.md`](AI_USAGE.md): transparent AI-use log.
@@ -31,7 +32,9 @@ Application source, tests, and demo assets will be added only after the product 
 1. Make one understandable change at a time.
 2. Update the decision and disclosure records when a change affects them.
 3. Run the relevant checks before committing.
-4. Keep the README's setup and demo instructions synchronized with the actual product.
+4. Commit and push each coherent, verified milestone, and always synchronize before handoff, context switch, demonstration, or final submission.
+5. Stage only explicit paths; do not automatically push every save or publish unverified half-complete work.
+6. Keep the README's setup and demo instructions synchronized with the actual product.
 
 ## Running the project
 

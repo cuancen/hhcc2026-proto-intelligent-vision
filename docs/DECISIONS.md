@@ -20,9 +20,16 @@
 - **Status:** Accepted
 - **Decision:** Initialize the repository on `main` and keep commits small enough to show the development timeline.
 
-## D-004 - Defer the remote repository decision
+## D-004 - Publish a public remote repository
 
 - **Date:** 2026-08-22
-- **Status:** Pending
-- **Decision:** Do not create or publish a remote until the GitHub owner and visibility are explicitly confirmed.
-- **Constraint:** The final submission must satisfy the organizer's public-code-repository requirement before the deadline.
+- **Status:** Accepted
+- **Decision:** Use `https://github.com/b1207739631-rgb/hhcc-2026-prototype` as the public remote, with `main` as the default branch.
+- **Reason:** This satisfies the public-code-repository requirement and provides a visible official-period development record.
+
+## D-005 - Synchronize verified milestones, not every save
+
+- **Date:** 2026-08-22
+- **Status:** Accepted
+- **Decision:** Commit and push each coherent, verified change that affects a deliverable, and always synchronize before handoff, context switch, demonstration, or final submission.
+- **Reason:** The official handbook requires a public repository and documentation of official-period work, but does not require real-time push-on-save. Milestone synchronization preserves evidence without publishing secrets, broken states, or noisy micro-commits.
