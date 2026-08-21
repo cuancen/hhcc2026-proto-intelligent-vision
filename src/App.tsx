@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useCockpit } from './shell/hooks/useCockpit';
+import { useDms } from './shell/hooks/useDms';
 import TopBar from './shell/components/TopBar';
 import EvaAgent from './shell/components/EvaAgent';
 import DriverPanel from './shell/components/DriverPanel';
 import SceneView from './shell/components/SceneView';
+import DmsPanel from './shell/components/DmsPanel';
 import AdasPanel from './shell/components/AdasPanel';
 import CabinPanel from './shell/components/CabinPanel';
 import AlertCenter from './shell/components/AlertCenter';
@@ -12,6 +14,7 @@ import ControlBar from './shell/components/ControlBar';
 
 export default function App() {
   const { snap, act, liveState, speed, setSpeed } = useCockpit();
+  const dms = useDms(act, liveState);
   const [autoDemoRunning, setAutoDemoRunning] = useState(false);
 
   return (
@@ -26,13 +29,16 @@ export default function App() {
 
         <div className="col col-center">
           <SceneView liveState={liveState} />
-          <section className="panel" aria-labelledby="dms-title">
-            <h2 className="panel-title" id="dms-title"><span className="dot" aria-hidden="true" />机器视觉 · 驾驶员监测</h2>
-            <p className="l2-note" style={{ margin: 0 }}>
-              机器视觉模块（摄像头 → 面部关键点 → 眨眼 / PERCLOS / 头部姿态）将在下一步接入，
-              并与仿真疲劳双通道融合。当前疲劳度仅由行车工况通道驱动。
-            </p>
-          </section>
+          <DmsPanel
+            mode={dms.mode}
+            status={dms.status}
+            sample={dms.sample}
+            videoRef={dms.videoRef}
+            canvasRef={dms.canvasRef}
+            onStartModel={() => void dms.startModel()}
+            onStartSim={dms.startSim}
+            onStop={dms.stopAll}
+          />
         </div>
 
         <div className="col col-right">

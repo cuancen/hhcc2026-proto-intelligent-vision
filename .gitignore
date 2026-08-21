@@ -3,6 +3,9 @@ dist/
 coverage/
 *.local
 
+# 自托管的 MediaPipe WASM 运行时（postinstall 自动拷贝，不入库）
+public/mediapipe-wasm/
+
 # 黑客松开始前的本地调研与旧演示稿（仅本地留档，不属于参赛代码）
 legacy/
 
