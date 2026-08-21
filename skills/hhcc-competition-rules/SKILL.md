@@ -53,8 +53,9 @@ description: HHCC 2026 原型开发赛道（Eva 智能座舱仓库）比赛规�
 
 每次新功能完成并验证通过后，**必须自主后台录制一段演示视频**作为团队素材：
 - 工具：内置浏览器 `tab.recording` API（`actions` 脚本驱动点击/等待，fps 15，1280×720）
+- **最终格式必须为 MP4**（h264/yuv420p）：录制 API 只出 WebM，录完立即用 ffmpeg 转 MP4 并删除 webm；ffmpeg 用 venv 里 imageio-ffmpeg 自带的二进制（路径存于 `feature-recordings/.ffmpeg_path`），转换命令：`"$FF" -y -i in.webm -c:v libx264 -pix_fmt yuv420p -movflags +faststart out.mp4`
 - 时长：单功能 15-30 秒（完整走一遍该功能的触发路径）
-- 保存：仓库外 `D:\DPHarness\feature-recordings/`，命名 `日期_功能名.webm`
+- 保存：仓库外 `D:\DPHarness\feature-recordings/`，命名 `日期_功能名.mp4`
 - ⚠️ 坑：`actions` 为空时录制立即结束，必须用 `{type:'wait', durationMs}` 撑时长
 - 录制仅是内部素材，**绝不入 git 仓库**；最终 ≤3 分钟演示视频由团队据此剪辑后只传赛事平台
 

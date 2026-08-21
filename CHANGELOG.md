@@ -15,6 +15,13 @@
 - `feat(a11y)` 字号缩放 / 高对比 / 跳转链 / aria-live 分级播报 / prefers-reduced-motion
 - `docs` README / PIPELINE 参数表 / AGENTS 协作约定，L2 辅助驾驶定位全面落地
 
+## 0.2.0 —— 路演讲解能力（08-22 凌晨追加）
+
+- `feat(demo)` 演示剧本结构化：每步带 `{title, note}` 评委讲解文案，覆盖三场景 + 休息分支（新增 3 项剧本回归测试，合计 28 项）
+- `feat(demo)` 路演讲解横幅 DemoBanner：自动演示时悬浮展示「第几步 / 正在看什么 / 想表达什么」+ 进度点 + 随手停止，替换底部旧状态 chip
+- `docs` 比赛规则 skill（作弊红线/评分导向/commit 纪律/录制规范）；团队功能说明手册
+- 工程外配套：功能演示 MP4 自动录制管线（feature-recordings/，不入库）
+
 ### 已知边界（后续迭代方向）
 
 - PERCLOS 窗口 30s，冷启动需半分钟才稳定展示（可考虑开机预热）
