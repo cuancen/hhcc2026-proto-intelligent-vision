@@ -393,6 +393,58 @@ input[type="range"] { accent-color: var(--accent); width: 130px; }
   50% { opacity: 1; transform: translateX(3px); }
 }
 
+/* ---------- 路演讲解横幅 ---------- */
+
+.demo-banner {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(760px, calc(100vw - 28px));
+  padding: 10px 16px 14px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(45, 212, 191, 0.55);
+  background: rgba(11, 18, 32, 0.9);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 18px rgba(45, 212, 191, 0.12);
+  animation: demoIn 0.35s ease;
+}
+.demo-banner .demo-step {
+  flex: none;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--accent);
+  border: 1px solid rgba(45, 212, 191, 0.5);
+  border-radius: 999px;
+  padding: 2px 9px;
+}
+.demo-banner .demo-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.demo-banner .demo-text strong { font-size: 0.92rem; }
+.demo-banner .demo-text span { font-size: 0.78rem; color: var(--text-soft); }
+.demo-banner .demo-dots {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: 5px;
+  display: flex;
+  gap: 4px;
+}
+.demo-banner .demo-dots i { flex: 1; height: 2px; border-radius: 2px; background: var(--line-strong); }
+.demo-banner .demo-dots i.done { background: var(--accent); }
+
+@keyframes demoIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+@media (max-width: 780px) {
+  .demo-banner { top: auto; bottom: 84px; }
+}
+
 /* ---------- 系统统计 ---------- */
 
 .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }

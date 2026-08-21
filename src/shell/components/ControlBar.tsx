@@ -9,11 +9,10 @@ interface ControlBarProps {
   setSpeed: (v: number) => void;
   autoDemoRunning: boolean;
   onToggleAutoDemo: () => void;
-  demoStep?: string;
 }
 
 /** 底部控制栏：场景 / 手动事件 / 疲劳注入 / L2 / 自动演示 / 速率 */
-export default function ControlBar({ snap, act, speed, setSpeed, autoDemoRunning, onToggleAutoDemo, demoStep }: ControlBarProps) {
+export default function ControlBar({ snap, act, speed, setSpeed, autoDemoRunning, onToggleAutoDemo }: ControlBarProps) {
   const [fat, setFat] = useState(20);
 
   return (
@@ -61,7 +60,6 @@ export default function ControlBar({ snap, act, speed, setSpeed, autoDemoRunning
       <div className="sep" aria-hidden="true" />
 
       <div className="grp" role="group" aria-label="自动演示与速率">
-        {demoStep && <span className="chip warn" role="status">{demoStep}</span>}
         <button
           type="button"
           className={`btn${autoDemoRunning ? ' active' : ''}`}

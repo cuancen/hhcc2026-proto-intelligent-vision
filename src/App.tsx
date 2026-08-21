@@ -3,8 +3,9 @@ import { useCockpit } from './shell/hooks/useCockpit';
 import { useDms } from './shell/hooks/useDms';
 import { useUiPrefs } from './shell/hooks/useUiPrefs';
 import { runAutoDemo } from './shell/autoDemo';
-import type { AutoDemoHandle } from './shell/autoDemo';
+import type { AutoDemoHandle, DemoStep } from './shell/autoDemo';
 import TopBar from './shell/components/TopBar';
+import DemoBanner from './shell/components/DemoBanner';
 import EvaAgent from './shell/components/EvaAgent';
 import DriverPanel from './shell/components/DriverPanel';
 import SceneView from './shell/components/SceneView';
@@ -28,7 +29,7 @@ export default function App() {
   const dms = useDms(act, liveState);
   const prefs = useUiPrefs();
   const [autoDemoRunning, setAutoDemoRunning] = useState(false);
-  const [demoStep, setDemoStep] = useState('');
+  const [demoStep, setDemoStep] = useState<DemoStep | null>(null);
   const demoRef = useRef<AutoDemoHandle | null>(null);
   const dmsRef = useRef(dms);
   dmsRef.current = dms;
@@ -37,7 +38,7 @@ export default function App() {
     demoRef.current?.stop();
     demoRef.current = null;
     setAutoDemoRunning(false);
-    setDemoStep('');
+    setDemoStep(null);
   }, []);
 
   const toggleDemo = useCallback(() => {
@@ -83,6 +84,8 @@ export default function App() {
         onToggleContrast={prefs.toggleHighContrast}
       />
 
+      <DemoBanner step={demoStep} running={autoDemoRunning} onStop={stopDemo} />
+
       <main className="cockpit-main" id="main">
         <div className="col col-left">
           <EvaAgent snap={snap} act={act} />
@@ -119,7 +122,6 @@ export default function App() {
         setSpeed={setSpeed}
         autoDemoRunning={autoDemoRunning}
         onToggleAutoDemo={toggleDemo}
-        demoStep={demoStep}
       />
     </div>
   );
