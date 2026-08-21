@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+*.local
+
+# 黑客松开始前的本地调研与旧演示稿（仅本地留档，不属于参赛代码）
+legacy/
+
+.DS_Store
+Thumbs.db
