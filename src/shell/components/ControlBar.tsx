@@ -9,10 +9,11 @@ interface ControlBarProps {
   setSpeed: (v: number) => void;
   autoDemoRunning: boolean;
   onToggleAutoDemo: () => void;
+  demoStep?: string;
 }
 
 /** 底部控制栏：场景 / 手动事件 / 疲劳注入 / L2 / 自动演示 / 速率 */
-export default function ControlBar({ snap, act, speed, setSpeed, autoDemoRunning, onToggleAutoDemo }: ControlBarProps) {
+export default function ControlBar({ snap, act, speed, setSpeed, autoDemoRunning, onToggleAutoDemo, demoStep }: ControlBarProps) {
   const [fat, setFat] = useState(20);
 
   return (
@@ -60,12 +61,13 @@ export default function ControlBar({ snap, act, speed, setSpeed, autoDemoRunning
       <div className="sep" aria-hidden="true" />
 
       <div className="grp" role="group" aria-label="自动演示与速率">
+        {demoStep && <span className="chip warn" role="status">{demoStep}</span>}
         <button
           type="button"
           className={`btn${autoDemoRunning ? ' active' : ''}`}
           aria-pressed={autoDemoRunning}
           onClick={onToggleAutoDemo}
-          title="自动走完三大场景（约 60 秒）"
+          title="自动走完三大场景（约 60 秒），快捷键 D"
         >
           {autoDemoRunning ? '■ 停止演示' : '▶ 自动演示'}
         </button>
@@ -75,6 +77,7 @@ export default function ControlBar({ snap, act, speed, setSpeed, autoDemoRunning
           </button>
         ))}
         <button type="button" className="btn small" onClick={() => act.reset()} title="复位当前场景">⟲ 复位</button>
+        <span className="grp-label" style={{ marginLeft: 4 }}>快捷键 1/2/3 场景 · D 演示 · L 辅助</span>
       </div>
     </footer>
   );
