@@ -54,7 +54,7 @@ export default function EvaAgent({ snap, act }: { snap: CockpitState; act: Cockp
       </div>
 
       {snap.pending && (
-        <div className="pending-box" role="alertdialog" aria-label={snap.pending.prompt}>
+        <div className="pending-box" role="alert">
           <div>⚠ {snap.pending.prompt}</div>
           <div className="opt">
             {snap.pending.options.map((o) => (

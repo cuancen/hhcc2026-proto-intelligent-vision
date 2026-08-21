@@ -426,3 +426,18 @@ body.high-contrast {
   clip: rect(0 0 0 0); clip-path: inset(50%);
   overflow: hidden; white-space: nowrap;
 }
+
+/* 跳转到主内容（键盘用户） */
+.skip-link {
+  position: absolute; left: 10px; top: -48px;
+  z-index: 100;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--accent); color: #06251f;
+  font-weight: 600; text-decoration: none;
+  transition: top 0.15s ease;
+}
+.skip-link:focus { top: 10px; }
+
+/* 字号缩放控件 */
+.a11y-group { display: inline-flex; gap: 4px; align-items: center; }

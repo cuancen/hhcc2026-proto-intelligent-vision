@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useCockpit } from './shell/hooks/useCockpit';
 import { useDms } from './shell/hooks/useDms';
+import { useUiPrefs } from './shell/hooks/useUiPrefs';
 import { runAutoDemo } from './shell/autoDemo';
 import type { AutoDemoHandle } from './shell/autoDemo';
 import TopBar from './shell/components/TopBar';
@@ -25,6 +26,7 @@ const SCENARIO_KEYS: Record<string, ScenarioId> = {
 export default function App() {
   const { snap, act, liveState, speed, setSpeed } = useCockpit();
   const dms = useDms(act, liveState);
+  const prefs = useUiPrefs();
   const [autoDemoRunning, setAutoDemoRunning] = useState(false);
   const [demoStep, setDemoStep] = useState('');
   const demoRef = useRef<AutoDemoHandle | null>(null);
@@ -72,7 +74,14 @@ export default function App() {
 
   return (
     <div className="cockpit">
-      <TopBar snap={snap} />
+      <a className="skip-link" href="#main">跳到主内容</a>
+      <TopBar
+        snap={snap}
+        fontScale={prefs.scale}
+        onZoom={prefs.zoom}
+        highContrast={prefs.highContrast}
+        onToggleContrast={prefs.toggleHighContrast}
+      />
 
       <main className="cockpit-main" id="main">
         <div className="col col-left">
