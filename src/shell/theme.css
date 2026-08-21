@@ -393,6 +393,99 @@ input[type="range"] { accent-color: var(--accent); width: 130px; }
   50% { opacity: 1; transform: translateX(3px); }
 }
 
+/* ---------- 开机自检动画 ---------- */
+
+.boot-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background:
+    radial-gradient(900px 500px at 50% 20%, rgba(45, 212, 191, 0.07), transparent 60%),
+    var(--bg);
+  cursor: pointer;
+  transition: opacity 0.4s ease;
+}
+.boot-splash.leaving { opacity: 0; pointer-events: none; }
+
+.boot-face {
+  width: 88px; height: 88px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, rgba(45,212,191,0.35), rgba(15,118,110,0.15) 60%, transparent),
+    var(--bg-soft);
+  border: 1px solid var(--line-strong);
+  display: grid;
+  place-items: center;
+  margin-bottom: 6px;
+  animation: bootGlow 1.6s ease-in-out infinite;
+}
+.boot-face .eyes { display: flex; gap: 18px; }
+.boot-face .eye {
+  width: 10px; height: 16px; border-radius: 4px;
+  background: var(--accent);
+  box-shadow: 0 0 10px var(--accent);
+  animation: blink 4.6s infinite;
+}
+@keyframes bootGlow {
+  50% { box-shadow: 0 0 34px rgba(45, 212, 191, 0.18); }
+}
+
+.boot-splash h2 { margin: 0; font-size: 1.6rem; letter-spacing: 0.14em; }
+.boot-splash .boot-slogan { margin: 0; color: var(--muted); font-size: 0.86rem; letter-spacing: 0.28em; }
+
+.boot-checks {
+  list-style: none;
+  margin: 18px 0 6px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 260px;
+}
+.boot-checks li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.84rem;
+  font-family: var(--mono);
+  color: var(--muted);
+  opacity: 0.35;
+  transition: opacity 0.25s ease, color 0.25s ease;
+}
+.boot-checks li.on { opacity: 1; color: var(--text-soft); }
+.boot-checks li .tick { color: var(--accent); width: 14px; text-align: center; }
+
+.boot-bar {
+  width: 260px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--line);
+  overflow: hidden;
+}
+.boot-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-deep), var(--accent));
+  transition: width 0.3s ease;
+}
+
+.boot-splash .boot-skip {
+  margin-top: 14px;
+  font: inherit;
+  font-size: 0.75rem;
+  color: var(--muted);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 14px;
+  cursor: pointer;
+}
+.boot-splash .boot-skip:hover { color: var(--text-soft); border-color: var(--line-strong); }
+
 /* ---------- 路演讲解横幅 ---------- */
 
 .demo-banner {

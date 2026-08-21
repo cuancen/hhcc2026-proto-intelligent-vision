@@ -6,6 +6,7 @@ import { runAutoDemo } from './shell/autoDemo';
 import type { AutoDemoHandle, DemoStep } from './shell/autoDemo';
 import TopBar from './shell/components/TopBar';
 import DemoBanner from './shell/components/DemoBanner';
+import BootSplash from './shell/components/BootSplash';
 import EvaAgent from './shell/components/EvaAgent';
 import DriverPanel from './shell/components/DriverPanel';
 import SceneView from './shell/components/SceneView';
@@ -28,6 +29,7 @@ export default function App() {
   const { snap, act, liveState, speed, setSpeed } = useCockpit();
   const dms = useDms(act, liveState);
   const prefs = useUiPrefs();
+  const [booted, setBooted] = useState(false);
   const [autoDemoRunning, setAutoDemoRunning] = useState(false);
   const [demoStep, setDemoStep] = useState<DemoStep | null>(null);
   const demoRef = useRef<AutoDemoHandle | null>(null);
@@ -75,6 +77,7 @@ export default function App() {
 
   return (
     <div className="cockpit">
+      {!booted && <BootSplash onDone={() => setBooted(true)} />}
       <a className="skip-link" href="#main">跳到主内容</a>
       <TopBar
         snap={snap}
