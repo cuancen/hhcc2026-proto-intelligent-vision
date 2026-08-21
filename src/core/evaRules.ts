@@ -70,25 +70,27 @@ export function applyScenario(ctx: EvaCtx, id: CockpitState['scenario']) {
   s.cabin.entertainmentBlocked = false;
   ctx.flags.complexActive = false;
   ctx.q = [];
+  // 脚本时刻基于当前 t 顺延，避免中途切换场景时多条播报挤在同一拍
+  const at = (delay: number, fn: () => void) => ctx.q.push([s.t + delay, fn]);
 
   if (id === 'commute') {
     s.drive.road = 'city';
     s.drive.auto = false;
     s.drive.routeKm = 12.6;
     s.driver.simFatigue = Math.min(s.driver.simFatigue, 18);
-    ctx.q.push([0.2, () => {
+    at(0.2, () => {
       say(ctx, 'care', '早上好！欢迎上车，已通过人脸识别确认是您。今天路况整体畅通。');
       s.stats.proact++;
-    }]);
-    ctx.q.push([0.7, () => {
+    });
+    at(0.7, () => {
       adjust(ctx, () => { s.cabin.temp = 22.5; s.cabin.ambient = '青碧'; s.cabin.music = '轻音乐'; s.cabin.fan = 1; });
       say(ctx, 'care', '已按您的习惯调节座舱：22.5℃、青碧氛围灯、轻音乐。');
       s.stats.proact++;
-    }]);
-    ctx.q.push([1.4, () => {
+    });
+    at(1.4, () => {
       say(ctx, 'care', `已沿常用路线规划导航，全程 ${s.drive.routeKm.toFixed(1)} 公里，预计 ${fmtEta(s)} 分钟到达。`);
       s.stats.proact++;
-    }]);
+    });
   }
 
   if (id === 'fatigue') {
@@ -96,32 +98,32 @@ export function applyScenario(ctx: EvaCtx, id: CockpitState['scenario']) {
     s.drive.auto = true;
     s.drive.routeKm = 96;
     s.driver.simFatigue = Math.max(s.driver.simFatigue, 42);
-    ctx.q.push([0.3, () => {
+    at(0.3, () => {
       say(ctx, 'sys', '长途高速工况：Eva 已加强视觉监测（眨眼频率 / PERCLOS 闭眼占比 / 头部姿态）。L2 辅助驾驶中，请您保持监管。');
-    }]);
+    });
   }
 
   if (id === 'complex') {
     s.drive.road = 'highway';
     s.drive.auto = true;
     s.drive.routeKm = 29.4;
-    ctx.q.push([0.3, () => {
+    at(0.3, () => {
       s.drive.rain = true;
       say(ctx, 'sys', '雨感信号：雨刷已自动开启，能见度下降，已同步修正目标车速。');
       s.stats.proact++;
-    }]);
-    ctx.q.push([1.2, () => {
+    });
+    at(1.2, () => {
       s.drive.road = 'congested';
       alert(ctx, 'warn', '前方拥堵，已汇入缓行车流。');
-    }]);
-    ctx.q.push([2.2, () => {
+    });
+    at(2.2, () => {
       s.drive.night = true;
       say(ctx, 'sys', '进入夜雨工况，大灯与仪表已切换夜间主题。');
-    }]);
-    ctx.q.push([4.2, () => {
+    });
+    at(4.2, () => {
       s.drive.leadBrake = true;
       alert(ctx, 'warn', '前车急刹，L2 已提前减速。');
-    }]);
+    });
   }
 }
 

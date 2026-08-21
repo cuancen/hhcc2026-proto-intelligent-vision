@@ -209,6 +209,20 @@ describe('日常通勤主动服务', () => {
   });
 });
 
+describe('场景脚本时序', () => {
+  it('中途切换场景时，脚本按当前时刻顺延（不挤压同拍）', () => {
+    const api = createCockpit();
+    api.actions.scenario('fatigue');
+    run(api, 10); // 先行驶一段（t≈10）
+    const before = api.state.chat.length;
+    api.actions.scenario('commute');
+    api.step(0.1); // 第一条在 +0.2，此刻不应触发
+    expect(api.state.chat.length).toBe(before);
+    run(api, 1);
+    expect(api.state.chat.length).toBeGreaterThan(before);
+  });
+});
+
 describe('快照隔离与复位', () => {
   it('snapshot 深拷贝，不影响内核状态', () => {
     const api = createCockpit();
