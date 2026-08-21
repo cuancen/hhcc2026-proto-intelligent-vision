@@ -11,3 +11,6 @@ legacy/
 
 .DS_Store
 Thumbs.db
+
+# 本地 Python 虚拟环境（PyTorch 备用环境，不属于参赛代码）
+env/
