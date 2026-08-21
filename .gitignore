@@ -1,0 +1,43 @@
+# Secrets and machine-local configuration
+.env
+.env.*
+!.env.example
+*.local
+*.key
+*.pem
+*.p12
+*.pfx
+.npmrc
+.pypirc
+credentials*.json
+secrets*.json
+
+# Dependencies
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Build, test, and tool output
+dist/
+build/
+coverage/
+.vite/
+.cache/
+tmp/
+temp/
+*.log
+
+# Local agent and research state
+.agents/
+.codex/
+.codex_tmp/
+.learnings/
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
