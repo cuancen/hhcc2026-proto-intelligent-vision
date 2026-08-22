@@ -53,7 +53,7 @@ async function firstOk<T>(sources: string[], open: (src: string) => Promise<T>, 
       lastErr = e;
     }
   }
-  throw new Error(`${label} 全部来源失败：${String(lastErr)}`);
+  throw new Error(`${label}: all sources failed — ${String(lastErr)}`);
 }
 
 export async function createDmsEngine(cb: DmsCallbacks): Promise<DmsEngine> {
@@ -75,7 +75,7 @@ export async function createDmsEngine(cb: DmsCallbacks): Promise<DmsEngine> {
     },
 
     async start(video: HTMLVideoElement) {
-      setStatus({ kind: 'loading', detail: '请求摄像头…' });
+      setStatus({ kind: 'loading', detail: 'Requesting camera…' });
       stream = await navigator.mediaDevices.getUserMedia({
         video: { width: 640, height: 480, facingMode: 'user' },
         audio: false,
@@ -84,12 +84,12 @@ export async function createDmsEngine(cb: DmsCallbacks): Promise<DmsEngine> {
       video.srcObject = stream;
       await video.play();
 
-      setStatus({ kind: 'loading', detail: '加载视觉模型（本地源优先）…' });
+      setStatus({ kind: 'loading', detail: 'Loading vision model (local source first)…' });
       const vision = await import('@mediapipe/tasks-vision');
       const fileset = await firstOk(
         WASM_SOURCES,
         (p) => vision.FilesetResolver.forVisionTasks(p),
-        'WASM 运行时',
+        'WASM runtime',
       );
 
       const tryCreate = (delegate: 'GPU' | 'CPU') =>
@@ -102,7 +102,7 @@ export async function createDmsEngine(cb: DmsCallbacks): Promise<DmsEngine> {
               numFaces: 1,
               outputFacialTransformationMatrixes: true,
             }),
-          `模型(${delegate})`,
+          `model(${delegate})`,
         );
 
       try {

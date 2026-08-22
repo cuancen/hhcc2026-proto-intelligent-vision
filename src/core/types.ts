@@ -2,8 +2,8 @@ import type { ScenarioId } from './params';
 
 export type RoadKind = 'city' | 'highway' | 'congested';
 export type AlertLevel = 'info' | 'warn' | 'urgent';
-export type EvaMode = '观察中' | '守护中' | '干预中' | '休息引导中' | '谨慎模式';
-export type MusicKind = '轻音乐' | '动感' | '新闻' | '关闭';
+export type EvaMode = 'Observing' | 'Guarding' | 'Intervening' | 'Resting' | 'Cautious';
+export type MusicKind = 'Soft' | 'Upbeat' | 'News' | 'Off';
 
 export interface DriveState {
   /** L2 辅助驾驶是否开启（驾驶员始终监管） */

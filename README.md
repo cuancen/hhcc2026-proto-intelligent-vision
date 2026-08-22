@@ -1,6 +1,6 @@
 # Eva · 智能座舱 —— 机器视觉守护的 L2 辅助驾驶舱内智能体
 
-> 吉利黑客松 · 原型开发赛道（Prototype Development Track，官方开发期内从零搭建）
+> **[English version](README_EN.md)** | 吉利黑客松 · 原型开发赛道（Prototype Development Track，官方开发期内从零搭建）
 > 创新主线：**机器视觉赛道 × 智能座舱** —— 用浏览器端真实面部关键点模型驱动驾驶员监测（DMS），与行车工况双通道融合，让 L2 辅助驾驶时代的座舱智能体"看得见驾驶员"。
 
 ## 定位声明（重要）
@@ -26,7 +26,7 @@
 ```bash
 npm install     # postinstall 自动将 MediaPipe WASM 拷贝到 public/（自托管，离线可用）
 npm run dev     # http://localhost:5173
-npm test        # 24 项内核/视觉指标回归（vitest，零 DOM）
+npm test        # 43 项内核/视觉/几何回归（vitest，零 DOM）
 npm run build   # 类型检查 + 生产构建
 ```
 

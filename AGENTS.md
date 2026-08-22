@@ -8,8 +8,9 @@
 src/core/     内核：sim 仿真 / evaRules 规则引擎 / params 参数唯一出处（零 DOM）
 src/vision/   机器视觉：metrics 纯函数 / dms MediaPipe 引擎 / simVision 模拟回退
 src/shell/    UI：hooks（useCockpit/useDms/useUiPrefs）+ components
-tests/        vitest：core.test.ts 16 项 + vision.test.ts 8 项
-public/       自托管模型 models/face_landmarker.task；mediapipe-wasm/ 由 postinstall 生成（不入库）
+src/landing/  品牌首页：three.js 3D 车 Hero（CC-BY，署名见 AI_USAGE.md）+ Canvas 线框回退；独立于座舱业务
+tests/        vitest：core.test.ts + vision.test.ts + shell.test.ts（43 项）
+public/       自托管模型 models/face_landmarker.task + models/geely.glb（meshopt 压缩）；mediapipe-wasm/ 由 postinstall 生成（不入库）
 docs/PIPELINE.md  参数表/数据流/演示剧本（改参数必须同步）
 ```
 
@@ -41,5 +42,6 @@ npm run build   # tsc --noEmit + vite build
 ## 话术规范
 
 - Eva 消息 kind：`care`（绿）/ `warn`（黄）/ `urg`（红）/ `sys`（蓝）；
-- L2 相关播报必须包含"监管/接管"责任表述；
-- 全部中文，面向"评委 + AI 协作者"双读者。
+- L2 相关播报必须包含"监管/接管"责任表述（英文文案对应 supervising / take over）；
+- **UI 面向用户的文案自 0.7.0 起全部为英文**（国际展示）；指令解析匹配英文关键词（sleepy/hot/cold/music/massage/nav/rest/l2）；
+- 代码注释、团队文档与协作沟通保持中文（工作语言）。

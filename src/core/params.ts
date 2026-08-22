@@ -43,9 +43,9 @@ export const P = {
 } as const;
 
 export const SCENARIOS = {
-  commute: { label: '☀ 日常通勤', desc: '上车问候 · 身份识别 · 习惯路线 · 专属座舱氛围' },
-  fatigue: { label: '😮‍💨 疲劳守护', desc: '视觉 PERCLOS + 仿真疲劳双通道 → 分级干预' },
-  complex: { label: '⛈ 复杂路况', desc: '雨夜 + 拥堵 + 弯道 → 舱驾协同谨慎模式' },
+  commute: { label: '☀ City Commute', desc: 'Boarding greeting · face identification · usual route · personalized cabin' },
+  fatigue: { label: '😮‍💨 Fatigue Guard', desc: 'Vision PERCLOS + workload fatigue dual-channel → graded intervention' },
+  complex: { label: '⛈ Complex Roads', desc: 'Rainy night + congestion + curves → cabin-drive cautious mode' },
 } as const;
 
 export type ScenarioId = keyof typeof SCENARIOS;

@@ -13,7 +13,7 @@ export interface EvaCtx {
 }
 
 export function createCtx(s: CockpitState): EvaCtx {
-  return { s, cd: {}, q: [], ids: { chat: 1, alert: 1 }, flags: { complexActive: false, musicBeforeBlock: '轻音乐' } };
+  return { s, cd: {}, q: [], ids: { chat: 1, alert: 1 }, flags: { complexActive: false, musicBeforeBlock: 'Soft' } };
 }
 
 const round1 = (v: number) => Math.round(v * 10) / 10;
@@ -79,16 +79,16 @@ export function applyScenario(ctx: EvaCtx, id: CockpitState['scenario']) {
     s.drive.routeKm = 12.6;
     s.driver.simFatigue = Math.min(s.driver.simFatigue, 18);
     at(0.2, () => {
-      say(ctx, 'care', '早上好！欢迎上车，已通过人脸识别确认是您。今天路况整体畅通。');
+      say(ctx, 'care', 'Good morning! Welcome aboard — face recognition confirms it is you. Traffic looks clear today.');
       s.stats.proact++;
     });
     at(0.7, () => {
-      adjust(ctx, () => { s.cabin.temp = 22.5; s.cabin.ambient = '青碧'; s.cabin.music = '轻音乐'; s.cabin.fan = 1; });
-      say(ctx, 'care', '已按您的习惯调节座舱：22.5℃、青碧氛围灯、轻音乐。');
+      adjust(ctx, () => { s.cabin.temp = 22.5; s.cabin.ambient = 'Teal'; s.cabin.music = 'Soft'; s.cabin.fan = 1; });
+      say(ctx, 'care', 'Cabin set to your preferences: 22.5°C, teal ambient light, soft music.');
       s.stats.proact++;
     });
     at(1.4, () => {
-      say(ctx, 'care', `已沿常用路线规划导航，全程 ${s.drive.routeKm.toFixed(1)} 公里，预计 ${fmtEta(s)} 分钟到达。`);
+      say(ctx, 'care', `Usual route planned — ${s.drive.routeKm.toFixed(1)} km in total, about ${fmtEta(s)} minutes to arrive.`);
       s.stats.proact++;
     });
   }
@@ -99,7 +99,7 @@ export function applyScenario(ctx: EvaCtx, id: CockpitState['scenario']) {
     s.drive.routeKm = 96;
     s.driver.simFatigue = Math.max(s.driver.simFatigue, 42);
     at(0.3, () => {
-      say(ctx, 'sys', '长途高速工况：Eva 已加强视觉监测（眨眼频率 / PERCLOS 闭眼占比 / 头部姿态）。L2 辅助驾驶中，请您保持监管。');
+      say(ctx, 'sys', 'Long highway drive: Eva has strengthened vision monitoring (blink rate / PERCLOS / head pose). L2 assisted driving active — please stay in supervision.');
     });
   }
 
@@ -109,20 +109,20 @@ export function applyScenario(ctx: EvaCtx, id: CockpitState['scenario']) {
     s.drive.routeKm = 29.4;
     at(0.3, () => {
       s.drive.rain = true;
-      say(ctx, 'sys', '雨感信号：雨刷已自动开启，能见度下降，已同步修正目标车速。');
+      say(ctx, 'sys', 'Rain sensor: wipers on automatically, visibility dropping — target speed adjusted accordingly.');
       s.stats.proact++;
     });
     at(1.2, () => {
       s.drive.road = 'congested';
-      alert(ctx, 'warn', '前方拥堵，已汇入缓行车流。');
+      alert(ctx, 'warn', 'Congestion ahead — merging into slow traffic.');
     });
     at(2.2, () => {
       s.drive.night = true;
-      say(ctx, 'sys', '进入夜雨工况，大灯与仪表已切换夜间主题。');
+      say(ctx, 'sys', 'Entering rainy-night conditions: headlights and cluster switched to night theme.');
     });
     at(4.2, () => {
       s.drive.leadBrake = true;
-      alert(ctx, 'warn', '前车急刹，L2 已提前减速。');
+      alert(ctx, 'warn', 'Lead vehicle braking hard — L2 slowed down in advance.');
     });
   }
 }
@@ -133,77 +133,79 @@ export function applyScenario(ctx: EvaCtx, id: CockpitState['scenario']) {
 
 export function handleCommand(ctx: EvaCtx, raw: string): boolean {
   const s = ctx.s;
-  const text = raw.trim();
+  const text = raw.trim().toLowerCase();
   if (!text) return false;
   s.stats.cmd++;
-  driverSay(ctx, text);
+  driverSay(ctx, raw.trim());
 
   const has = (...kw: string[]) => kw.some((k) => text.includes(k));
 
-  if (has('困', '累', '瞌睡', '犯乏')) {
+  if (has('sleepy', 'tired', 'drowsy', 'dozing', 'fatigued')) {
     s.driver.simFatigue = Math.max(s.driver.simFatigue, 63);
-    adjust(ctx, () => { s.cabin.fan = Math.min(3, s.cabin.fan + 1) as typeof s.cabin.fan; s.cabin.temp = Math.max(20, s.cabin.temp - 1.5); s.cabin.music = '动感'; });
-    say(ctx, 'care', '收到，已为您加强通风、调低温度并切换动感音乐提神。若仍然困倦，建议在前方服务区休息，我可以帮您规划。');
+    adjust(ctx, () => { s.cabin.fan = Math.min(3, s.cabin.fan + 1) as typeof s.cabin.fan; s.cabin.temp = Math.max(20, s.cabin.temp - 1.5); s.cabin.music = 'Upbeat'; });
+    say(ctx, 'care', 'Got it — boosting ventilation, lowering the temperature and switching to upbeat music to keep you fresh. If you still feel drowsy, I suggest a rest at the next service area; I can plan it for you.');
     s.stats.proact++;
     return true;
   }
-  if (has('热')) {
+  if (has('hot', 'too warm')) {
     adjust(ctx, () => { s.cabin.temp = Math.max(18, s.cabin.temp - 1.5); });
-    say(ctx, 'care', `好的，已调低至 ${s.cabin.temp.toFixed(1)}℃。`);
+    say(ctx, 'care', `Sure — temperature lowered to ${s.cabin.temp.toFixed(1)}°C.`);
     return true;
   }
-  if (has('冷')) {
+  if (has('cold', 'chilly')) {
     adjust(ctx, () => { s.cabin.temp = Math.min(30, s.cabin.temp + 1.5); });
-    say(ctx, 'care', `好的，已调高至 ${s.cabin.temp.toFixed(1)}℃。`);
+    say(ctx, 'care', `Sure — temperature raised to ${s.cabin.temp.toFixed(1)}°C.`);
     return true;
   }
-  if (has('静音', '关掉音乐', '关闭音乐', '别放了')) {
-    adjust(ctx, () => { s.cabin.music = '关闭'; });
-    say(ctx, 'care', '音乐已关闭。');
+  if (has('mute', 'music off', 'stop the music', 'no music')) {
+    adjust(ctx, () => { s.cabin.music = 'Off'; });
+    say(ctx, 'care', 'Music off.');
     return true;
   }
-  if (has('音乐', '歌', '来点')) {
-    const cycle: CockpitState['cabin']['music'][] = ['轻音乐', '动感', '新闻'];
+  if (has('music', 'song', 'play something')) {
+    const cycle: CockpitState['cabin']['music'][] = ['Soft', 'Upbeat', 'News'];
     const next = cycle[(cycle.indexOf(s.cabin.music) + 1) % cycle.length];
     adjust(ctx, () => { s.cabin.music = next; });
-    say(ctx, 'care', `已切换到${next}。`);
+    say(ctx, 'care', `Switched to ${next}.`);
     return true;
   }
-  if (has('按摩')) {
+  if (has('massage')) {
     adjust(ctx, () => { s.cabin.seatMassage = !s.cabin.seatMassage; });
-    say(ctx, 'care', `座椅按摩已${s.cabin.seatMassage ? '开启' : '关闭'}。`);
+    say(ctx, 'care', `Seat massage ${s.cabin.seatMassage ? 'on' : 'off'}.`);
     return true;
   }
-  if (has('导航', '路线', '多久', '还有多远')) {
+  if (has('nav', 'navigation', 'route', 'eta', 'how long', 'how far')) {
     say(ctx, 'care', s.drive.routeKm > 0
-      ? `剩余 ${s.drive.routeKm.toFixed(1)} 公里，按当前车速预计 ${fmtEta(s)} 分钟到达。`
-      : '我们已到达目的地附近。');
+      ? `${s.drive.routeKm.toFixed(1)} km remaining — about ${fmtEta(s)} minutes to arrive at current speed.`
+      : 'We are close to the destination.');
     return true;
   }
-  if (has('休息', '服务区', '停车')) {
-    startRest(ctx, '好的，已为您寻找前方 8 公里处的服务区并进入休息模式。');
+  if (has('rest', 'break', 'service area', 'pull over')) {
+    startRest(ctx, 'Sure — found a service area 8 km ahead and entering rest mode for you.');
     return true;
   }
-  if (has('开启辅助', '打开辅助', '开启l2', '打开l2')) {
+  if (has('enable l2', 'turn on l2', 'start l2', 'activate l2', 'l2 on')) {
     setAuto(ctx, true);
     return true;
   }
-  if (has('关闭辅助', '退出辅助', '关闭l2', '退出l2')) {
+  if (has('disable l2', 'turn off l2', 'exit l2', 'stop l2', 'l2 off')) {
     setAuto(ctx, false);
     return true;
   }
-  say(ctx, 'sys', '抱歉，我还在学习中。目前支持：冷热调节、音乐、座椅按摩、导航、休息引导与 L2 辅助开关。');
+  say(ctx, 'sys', "Sorry, I'm still learning. I can currently help with: temperature, music, seat massage, navigation, rest guidance and the L2 assist toggle.");
   return false;
 }
 
 export function startRest(ctx: EvaCtx, msg: string) {
   const s = ctx.s;
+  // 直接通过指令进入休息（未走 pending 分支）时，清除可能滞留的紧急选择框
+  s.pending = null;
   s.driver.resting = true;
   s.stats.rest = 1;
   adjust(ctx, () => {
-    s.cabin.music = '关闭';
+    s.cabin.music = 'Off';
     s.cabin.seatMassage = true;
-    s.cabin.ambient = '暖橙';
+    s.cabin.ambient = 'Warm Amber';
     s.cabin.temp = 23.5;
     s.cabin.fan = 2;
   });
@@ -216,12 +218,12 @@ export function setAuto(ctx: EvaCtx, on: boolean) {
   const s = ctx.s;
   s.drive.auto = on;
   if (on) {
-    say(ctx, 'sys', 'L2 辅助驾驶已开启：自适应巡航 + 车道居中。请您始终监管路况，双手不要长时间离开方向盘，可随时接管。');
+    say(ctx, 'sys', 'L2 assisted driving on: adaptive cruise + lane centering. Please keep supervising the road at all times, keep your hands available, and take over anytime.');
     if (fuseFatigue(s) >= P.fatigueTh.care) {
-      say(ctx, 'warn', '提示：当前已监测到疲劳迹象，建议谨慎使用辅助驾驶，必要时进入服务区休息。');
+      say(ctx, 'warn', 'Heads-up: fatigue signs already detected. Use assisted driving with care, or take a rest at a service area if needed.');
     }
   } else {
-    say(ctx, 'sys', '已切换为人工驾驶，Eva 转为副驾守护模式，随时为您预警路况。');
+    say(ctx, 'sys', 'Switched to manual driving. Eva moves to co-pilot guard mode and keeps warning you about the road.');
   }
 }
 
@@ -234,10 +236,10 @@ export function handleReply(ctx: EvaCtx, key: string) {
   driverSay(ctx, opt.label);
 
   if (key === 'rest') {
-    startRest(ctx, '好的，已锁定前方 8 公里服务区，现在为您进入休息模式：座椅放倒、氛围灯调暖、音乐关闭。');
+    startRest(ctx, 'Locking in the service area 8 km ahead — entering rest mode now: seat reclined, warm ambient light, music off.');
     s.stats.risk++;
   } else if (key === 'hold') {
-    say(ctx, 'warn', `明白。${P.reEscalateAfter} 分钟后若仍监测到重度疲劳，我会再次提醒您。请保持车窗通风。`);
+    say(ctx, 'warn', `Understood. If severe fatigue is still detected in ${P.reEscalateAfter} minutes, I will remind you again. Please keep the windows ventilated.`);
     // 拒绝休息：把“重度疲劳”规则的下一次可触发时刻压到 reEscalateAfter 分钟后，实现到点再升级
     ctx.cd.fat2 = s.t + P.reEscalateAfter;
   }
@@ -248,11 +250,11 @@ export function handleReply(ctx: EvaCtx, key: string) {
 /* ------------------------------------------------------------------ */
 
 function evaModeOf(s: CockpitState, complexActive: boolean): CockpitState['evaMode'] {
-  if (s.drive.l2Degraded) return '干预中';
-  if (s.driver.resting || s.pending) return '休息引导中';
-  if (complexActive) return '谨慎模式';
-  if (s.driver.fatigue >= P.fatigueTh.care) return '守护中';
-  return '观察中';
+  if (s.drive.l2Degraded) return 'Intervening';
+  if (s.driver.resting || s.pending) return 'Resting';
+  if (complexActive) return 'Cautious';
+  if (s.driver.fatigue >= P.fatigueTh.care) return 'Guarding';
+  return 'Observing';
 }
 
 export function runRules(ctx: EvaCtx, dt: number) {
@@ -271,23 +273,23 @@ export function runRules(ctx: EvaCtx, dt: number) {
     if (v.lookAwaySec >= P.lookAwayTh.escSec) {
       if (!s.drive.l2Degraded) {
         s.drive.l2Degraded = true;
-        alert(ctx, 'urgent', '持续视线离开路面，L2 已降级：降低目标车速并拉大跟车时距，请立即观察前方。');
-        say(ctx, 'urg', '我检测到您已持续视线离开超过 4 秒，已主动降低车速、拉大跟车距离。请立即回看路面。');
+        alert(ctx, 'urgent', 'Sustained eyes off the road — L2 degraded: lower target speed and longer headway. Look ahead immediately.');
+        say(ctx, 'urg', 'Your eyes have been off the road for over 4 seconds — I have reduced speed and extended the following distance. Please look back at the road now.');
       }
     } else if (s.drive.l2Degraded && v.lookAwaySec < 0.5) {
       s.drive.l2Degraded = false;
-      alert(ctx, 'info', '注意力恢复，L2 恢复常规策略。');
+      alert(ctx, 'info', 'Attention recovered — L2 restored to normal strategy.');
     }
     if (v.lookAwaySec >= P.lookAwayTh.warnSec && v.lookAwaySec < P.lookAwayTh.escSec) {
       gate(ctx, 'look', P.cd.lookWarn, () => {
-        alert(ctx, 'warn', '检测到视线离开前方，请注意路面。');
+        alert(ctx, 'warn', 'Eyes leaving the road ahead — please watch the road.');
       });
     }
   }
 
   if (v && !v.present) {
     gate(ctx, 'absent', 10, () => {
-      alert(ctx, 'warn', '视觉范围内未检测到驾驶员，请确认坐姿。');
+      alert(ctx, 'warn', 'No driver detected in view — please check your seating position.');
     });
   }
 
@@ -295,25 +297,25 @@ export function runRules(ctx: EvaCtx, dt: number) {
   if (!s.driver.resting) {
     if (s.driver.fatigue >= P.fatigueTh.urgent && !s.pending) {
       gate(ctx, 'fat2', P.cd.urgent, () => {
-        say(ctx, 'urg', '您已处于重度疲劳状态（PERCLOS 显著升高），继续驾驶风险很高。');
-        alert(ctx, 'urgent', '重度疲劳：建议立即进入服务区休息。');
+        say(ctx, 'urg', 'You are severely fatigued (PERCLOS markedly elevated) — continuing to drive is high risk.');
+        alert(ctx, 'urgent', 'Severe fatigue: entering a service area to rest is strongly advised.');
         pushPending(ctx, {
-          prompt: '需要我现在为您规划前方服务区并进入休息模式吗？',
+          prompt: 'Shall I plan a service area ahead and enter rest mode for you now?',
           options: [
-            { key: 'rest', label: '立即休息' },
-            { key: 'hold', label: '再坚持一会儿' },
+            { key: 'rest', label: 'Rest now' },
+            { key: 'hold', label: 'Keep driving' },
           ],
         });
       });
-    } else if (s.driver.fatigue >= P.fatigueTh.care) {
+    } else if (s.driver.fatigue >= P.fatigueTh.care && !s.pending) {
       gate(ctx, 'fat1', P.cd.care, () => {
-        const pc = v && v.present ? `（PERCLOS ${(v.perclos * 100).toFixed(0)}%）` : '';
+        const pc = v && v.present ? ` (PERCLOS ${(v.perclos * 100).toFixed(0)}%)` : '';
         adjust(ctx, () => {
           s.cabin.fan = Math.min(3, s.cabin.fan + 1) as typeof s.cabin.fan;
           s.cabin.temp = Math.max(20, s.cabin.temp - 1.5);
-          if (!ctx.flags.complexActive) s.cabin.music = s.cabin.music === '关闭' ? '轻音乐' : s.cabin.music;
+          if (!ctx.flags.complexActive) s.cabin.music = s.cabin.music === 'Off' ? 'Soft' : s.cabin.music;
         });
-        say(ctx, 'care', `注意到您眨眼变频繁、眼睑下垂${pc}，已为您加强通风、调低温度${ctx.flags.complexActive ? '' : '、切换轻音乐'}。建议开窗或到服务区稍作休息。`);
+        say(ctx, 'care', `Noticing more frequent blinks and drooping eyelids${pc} — ventilation boosted and temperature lowered${ctx.flags.complexActive ? '' : ', soft music on'}. Consider opening a window or resting at a service area.`);
         s.stats.proact++;
       });
     }
@@ -323,8 +325,8 @@ export function runRules(ctx: EvaCtx, dt: number) {
   if (s.driver.resting && s.driver.simFatigue < 15 && s.t >= (ctx.cd.restDone ?? 0)) {
     ctx.cd.restDone = s.t + 30;
     s.driver.resting = false;
-    adjust(ctx, () => { s.cabin.seatMassage = false; s.cabin.ambient = '青碧'; });
-    say(ctx, 'care', '监测到您的状态已明显恢复，随时可以继续行程。');
+    adjust(ctx, () => { s.cabin.seatMassage = false; s.cabin.ambient = 'Teal'; });
+    say(ctx, 'care', 'Your condition has clearly recovered — ready to continue the trip whenever you are.');
   }
 
   // 4) 复杂路况：因子 ≥2 屏蔽娱乐、谨慎模式；缓解后自动恢复
@@ -333,27 +335,27 @@ export function runRules(ctx: EvaCtx, dt: number) {
     ctx.flags.complexActive = true;
     ctx.flags.musicBeforeBlock = s.cabin.music;
     s.cabin.entertainmentBlocked = true;
-    if (s.cabin.music !== '关闭') adjust(ctx, () => { s.cabin.music = '关闭'; });
-    say(ctx, 'warn', '当前雨夜拥堵、路况复杂：已屏蔽娱乐内容、强化安全播报，进入谨慎模式。');
+    if (s.cabin.music !== 'Off') adjust(ctx, () => { s.cabin.music = 'Off'; });
+    say(ctx, 'warn', 'Rainy night in congestion — complex conditions: entertainment blocked, safety announcements prioritized, cautious mode on.');
     s.stats.proact++;
   } else if (cx < P.complexityBlock && ctx.flags.complexActive) {
     ctx.flags.complexActive = false;
     s.cabin.entertainmentBlocked = false;
-    adjust(ctx, () => { s.cabin.music = ctx.flags.musicBeforeBlock === '关闭' ? '轻音乐' : ctx.flags.musicBeforeBlock; });
-    say(ctx, 'care', '路况已缓解，娱乐与常规座舱服务已恢复。');
+    adjust(ctx, () => { s.cabin.music = ctx.flags.musicBeforeBlock === 'Off' ? 'Soft' : ctx.flags.musicBeforeBlock; });
+    say(ctx, 'care', 'Road conditions have eased — entertainment and regular cabin services restored.');
   }
 
   // 5) 情绪四联动
   if (s.driver.emotion <= P.emotionTh.low) {
     gate(ctx, 'emoLow', P.cd.emotion, () => {
-      adjust(ctx, () => { s.cabin.ambient = '暖橙'; s.cabin.music = '轻音乐'; s.cabin.seatMassage = true; });
-      say(ctx, 'care', '检测到情绪偏低：氛围灯已调暖、播放舒缓音乐、开启轻柔按摩，希望能让您放松一些。');
+      adjust(ctx, () => { s.cabin.ambient = 'Warm Amber'; s.cabin.music = 'Soft'; s.cabin.seatMassage = true; });
+      say(ctx, 'care', 'Sensing low mood: ambient light warmed up, soothing music on, gentle massage started — hope it helps you relax.');
       s.stats.proact++;
     });
   } else if (s.driver.emotion >= P.emotionTh.high) {
     gate(ctx, 'emoHigh', P.cd.emotion, () => {
-      adjust(ctx, () => { s.cabin.music = '轻音乐'; s.cabin.fan = Math.min(3, s.cabin.fan + 1) as typeof s.cabin.fan; });
-      say(ctx, 'care', '您看起来情绪高涨：已切换舒缓曲目并微调通风，保持平稳驾驶状态。');
+      adjust(ctx, () => { s.cabin.music = 'Soft'; s.cabin.fan = Math.min(3, s.cabin.fan + 1) as typeof s.cabin.fan; });
+      say(ctx, 'care', 'You seem excited: switched to calmer tracks and fine-tuned ventilation to keep driving steady.');
       s.stats.proact++;
     });
   }
@@ -361,7 +363,7 @@ export function runRules(ctx: EvaCtx, dt: number) {
   // 6) L2 监管提醒（L2 定位：责任始终在驾驶员）
   if (s.drive.auto && (s.driver.fatigue >= 50 || (v?.present && v.perclos >= P.perclosTh.warn))) {
     gate(ctx, 'l2Remind', P.cd.l2Remind, () => {
-      alert(ctx, 'info', 'L2 提醒：辅助驾驶期间请保持对路况的关注。');
+      alert(ctx, 'info', 'L2 reminder: please keep watching the road while assisted driving is active.');
     });
   }
 

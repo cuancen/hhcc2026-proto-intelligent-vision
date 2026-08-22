@@ -106,8 +106,9 @@ body {
 
 .panel-title .dot {
   width: 8px; height: 8px; border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 10px var(--accent);
+  background: var(--ambient);
+  box-shadow: 0 0 10px var(--ambient);
+  transition: background 0.6s ease, box-shadow 0.6s ease;
 }
 
 /* ---------- 顶栏 ---------- */
@@ -184,20 +185,55 @@ body {
   border: 1px solid var(--line-strong);
   display: grid;
   place-items: center;
+  transition: border-color 0.5s ease, box-shadow 0.5s ease;
 }
-.eva-face .eyes { display: flex; gap: 14px; }
-.eva-face .eye {
-  width: 8px; height: 12px; border-radius: 4px;
-  background: var(--accent);
-  box-shadow: 0 0 8px var(--accent);
+.eva-face.care { border-color: rgba(74, 222, 128, 0.5); box-shadow: 0 0 14px rgba(74, 222, 128, 0.16); }
+.eva-face.warn { border-color: rgba(251, 191, 36, 0.55); box-shadow: 0 0 16px rgba(251, 191, 36, 0.2); }
+.eva-face.urgent { border-color: rgba(248, 113, 113, 0.7); box-shadow: 0 0 18px rgba(248, 113, 113, 0.3); animation: faceShake 0.5s ease-in-out infinite; }
+
+.eva-face-svg { display: block; width: 58px; height: 58px; }
+.eva-face-svg .ring { stroke: var(--accent); opacity: 0.35; transition: stroke 0.5s ease, opacity 0.5s ease; }
+.eva-face-svg.care .ring { stroke: var(--ok); opacity: 0.5; }
+.eva-face-svg.warn .ring { stroke: var(--warn); opacity: 0.6; }
+.eva-face-svg.urgent .ring { stroke: var(--danger); opacity: 0.85; }
+
+.eva-face-svg .eye-bar,
+.eva-face-svg .eye-round {
+  fill: var(--accent);
   animation: blink 4.6s infinite;
+  transform-box: fill-box;
+  transform-origin: center;
 }
+.eva-face-svg .eye-arc { fill: none; stroke: var(--ok); stroke-width: 3.4; stroke-linecap: round; }
+.eva-face-svg.warn .eye-bar, .eva-face-svg.warn .eye-round { fill: var(--warn); animation-duration: 6s; }
+.eva-face-svg.urgent .eye-bar, .eva-face-svg.urgent .eye-round { fill: var(--danger); animation: none; filter: drop-shadow(0 0 3px rgba(248, 113, 113, 0.8)); }
+
+.eva-face-svg .mouth { fill: none; stroke: var(--text-soft); stroke-width: 3; stroke-linecap: round; transition: stroke 0.4s ease; }
+.eva-face-svg.care .mouth { stroke: var(--ok); }
+.eva-face-svg.warn .mouth { stroke: var(--warn); }
+.eva-face-svg .mouth.urg { fill: var(--danger); stroke: none; opacity: 0.9; }
+.eva-face-svg .mouth-talk {
+  fill: var(--accent);
+  stroke: none;
+  animation: talk 0.32s ease-in-out infinite alternate;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.eva-face-svg .mouth-talk.urg { fill: var(--danger); }
+
 @keyframes blink {
   0%, 92%, 100% { transform: scaleY(1); }
   95% { transform: scaleY(0.1); }
 }
-.eva-face.urg .eye { background: var(--danger); box-shadow: 0 0 10px var(--danger); }
-.eva-face.warn .eye { background: var(--warn); box-shadow: 0 0 10px var(--warn); }
+@keyframes talk {
+  from { transform: scaleY(0.35); }
+  to { transform: scaleY(1); }
+}
+@keyframes faceShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-1.5px); }
+  75% { transform: translateX(1.5px); }
+}
 
 .eva-meta { min-width: 0; }
 .eva-mode { font-size: 0.95rem; font-weight: 600; }
@@ -225,6 +261,26 @@ body {
 .msg.driver { align-self: flex-end; background: rgba(45,212,191,0.1); border-color: rgba(45,212,191,0.35); }
 .msg .who { font-size: 0.68rem; color: var(--muted); margin-bottom: 2px; }
 
+/* 消息入场滑入（新节点挂载时触发） */
+.msg { animation: msgIn 0.28s ease; }
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(6px); }
+}
+
+/* 「正在输入…」三点 */
+.typing-dots { display: inline-flex; gap: 4px; align-items: center; padding: 3px 0; }
+.typing-dots i {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--muted);
+  animation: dotBounce 1s ease-in-out infinite;
+}
+.typing-dots i:nth-child(2) { animation-delay: 0.15s; }
+.typing-dots i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes dotBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30% { transform: translateY(-3px); opacity: 1; }
+}
+
 .quick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 
 .pending-box {
@@ -234,6 +290,10 @@ body {
   background: rgba(251, 191, 36, 0.07);
   padding: 10px;
   font-size: 0.85rem;
+  animation: popIn 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.25);
+}
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.92); }
 }
 .pending-box .opt { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
 
@@ -263,7 +323,11 @@ body {
 
 /* ---------- 场景主视图 ---------- */
 
-.scene-wrap { position: relative; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--line); background: var(--bg-soft); }
+.scene-wrap {
+  position: relative; border-radius: var(--radius); overflow: hidden;
+  border: 1px solid var(--line); background: var(--bg-soft);
+  transition: border-color 0.5s ease, box-shadow 0.5s ease;
+}
 .scene-wrap canvas { display: block; width: 100%; aspect-ratio: 16 / 9; }
 
 .hud {
@@ -328,6 +392,10 @@ body {
 .alert-item.urgent { border-color: rgba(248,113,113,0.6); background: rgba(248,113,113,0.07); }
 .alert-item.urgent .lv { color: var(--danger); border: 1px solid rgba(248,113,113,0.65); }
 .alert-item .at { margin-left: auto; color: var(--muted); font-family: var(--mono); font-size: 0.7rem; flex: none; }
+.alert-item { animation: alertIn 0.25s ease; }
+@keyframes alertIn {
+  from { opacity: 0; transform: translateY(-6px); }
+}
 
 /* ---------- 座舱环境 ---------- */
 
@@ -337,6 +405,14 @@ body {
 .cabin-item b { font-family: var(--mono); font-weight: 600; }
 .cabin-item.highlight { border-color: var(--accent); box-shadow: 0 0 10px rgba(45,212,191,0.15); }
 .cabin-item.blocked b { color: var(--warn); }
+/* Eva 调节触发：2 秒闪烁高亮后自动消退（与 CabinPanel FLASH_MS 对齐） */
+.cabin-item.changed { animation: valueFlash 2s ease; }
+@keyframes valueFlash {
+  0% { border-color: var(--line); box-shadow: none; }
+  12% { border-color: var(--accent); box-shadow: 0 0 14px rgba(45, 212, 191, 0.4); }
+  30% { box-shadow: 0 0 10px rgba(45, 212, 191, 0.22); }
+  100% { border-color: var(--line); box-shadow: none; }
+}
 
 /* ---------- L2 / ADAS ---------- */
 
@@ -544,6 +620,40 @@ input[type="range"] { accent-color: var(--accent); width: 130px; }
 .stat { text-align: center; padding: 8px 4px; border-radius: var(--radius-sm); background: var(--panel); border: 1px solid var(--line); }
 .stat b { display: block; font-family: var(--mono); font-size: 1.05rem; color: var(--accent); }
 .stat span { font-size: 0.68rem; color: var(--muted); }
+
+/* ---------- 全局告警氛围（舱驾协同的可视层） ---------- */
+/* App 根节点按告警分级打 data-ambient；--ambient 驱动面板指示灯等状态色。
+   红色氛围用容器内阴影 + 面板描边实现，不叠加全屏覆盖层——任何环境下都不拦截交互。 */
+
+.cockpit[data-ambient='warn'] { --ambient: var(--warn); }
+.cockpit[data-ambient='danger'] { --ambient: var(--danger); }
+
+/* 紧急告警：根容器 inset 红光脉冲（画在面板之下、背景之上） */
+.cockpit[data-ambient='danger'] {
+  box-shadow: inset 0 0 110px 18px rgba(248, 113, 113, 0.26);
+  animation: cockpitPulse 1.5s ease-in-out infinite;
+}
+@keyframes cockpitPulse {
+  50% { box-shadow: inset 0 0 150px 26px rgba(248, 113, 113, 0.4); }
+}
+
+/* 面板描边随氛围分级（琥珀=预警 / 红=紧急） */
+.cockpit[data-ambient='warn'] .panel { border-color: rgba(251, 191, 36, 0.38); }
+.cockpit[data-ambient='danger'] .panel { border-color: rgba(248, 113, 113, 0.45); }
+
+/* 态势视图描边随氛围发光 */
+.cockpit[data-ambient='warn'] .scene-wrap {
+  border-color: rgba(251, 191, 36, 0.5);
+  box-shadow: 0 0 18px rgba(251, 191, 36, 0.12);
+}
+.cockpit[data-ambient='danger'] .scene-wrap {
+  border-color: rgba(248, 113, 113, 0.65);
+  box-shadow: inset 0 0 70px rgba(248, 113, 113, 0.18), 0 0 26px rgba(248, 113, 113, 0.18);
+  animation: sceneDanger 1.5s ease-in-out infinite;
+}
+@keyframes sceneDanger {
+  50% { box-shadow: inset 0 0 90px rgba(248, 113, 113, 0.3), 0 0 30px rgba(248, 113, 113, 0.25); }
+}
 
 /* ---------- 无障碍：减弱动效 ---------- */
 

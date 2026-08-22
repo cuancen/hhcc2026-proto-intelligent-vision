@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 const FONT_SCALES = [0.9, 1, 1.15, 1.3] as const;
 const KEY_SCALE = 'eva.fontScale';
 const KEY_HC = 'eva.highContrast';
+const KEY_VOICE = 'eva.voice';
 
 function loadNum(key: string, dflt: number): number {
   try {
@@ -23,12 +24,13 @@ function loadBool(key: string, dflt: boolean): boolean {
 }
 
 /**
- * 用户界面偏好：字号缩放（rem 根字号）与高对比模式，localStorage 持久化。
- * 与 prefers-reduced-motion（CSS 媒体查询）共同构成无障碍三开关。
+ * 用户界面偏好：字号缩放（rem 根字号）、高对比模式、Eva 语音播报，localStorage 持久化。
+ * 与 prefers-reduced-motion（CSS 媒体查询）共同构成无障碍开关组。
  */
 export function useUiPrefs() {
   const [scale, setScale] = useState<number>(() => loadNum(KEY_SCALE, 1));
   const [highContrast, setHighContrast] = useState<boolean>(() => loadBool(KEY_HC, false));
+  const [voice, setVoice] = useState<boolean>(() => loadBool(KEY_VOICE, true));
 
   useEffect(() => {
     document.documentElement.style.fontSize = `${16 * scale}px`;
@@ -40,6 +42,10 @@ export function useUiPrefs() {
     try { window.localStorage.setItem(KEY_HC, highContrast ? '1' : '0'); } catch { /* 隐私模式等 */ }
   }, [highContrast]);
 
+  useEffect(() => {
+    try { window.localStorage.setItem(KEY_VOICE, voice ? '1' : '0'); } catch { /* 隐私模式等 */ }
+  }, [voice]);
+
   const zoom = useCallback((dir: -1 | 0 | 1) => {
     setScale((s) => {
       const i = FONT_SCALES.indexOf(s as (typeof FONT_SCALES)[number]);
@@ -49,5 +55,12 @@ export function useUiPrefs() {
     });
   }, []);
 
-  return { scale, zoom, highContrast, toggleHighContrast: () => setHighContrast((v) => !v) };
+  return {
+    scale,
+    zoom,
+    highContrast,
+    toggleHighContrast: () => setHighContrast((v) => !v),
+    voice,
+    toggleVoice: () => setVoice((v) => !v),
+  };
 }

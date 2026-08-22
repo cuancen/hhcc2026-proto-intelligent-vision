@@ -30,7 +30,7 @@ export default function Gauge({ label, value, unit = '', warnAt, dangerAt, inver
 
   return (
     <div className={`gauge${lv === 'warn' ? ' warn' : ''}${lv === 'danger' ? ' danger' : ''}`}>
-      <svg width="68" height="68" viewBox="0 0 68 68" role="img" aria-label={`${label}：${Math.round(value)}${unit}${lv !== 'ok' ? (lv === 'warn' ? '，偏高' : '，告警') : ''}`}>
+      <svg width="68" height="68" viewBox="0 0 68 68" role="img" aria-label={`${label}: ${Math.round(value)}${unit}${lv !== 'ok' ? (lv === 'warn' ? ', elevated' : ', alert') : ''}`}>
         <circle cx="34" cy="34" r={r} fill="none" stroke="rgba(148,178,215,0.18)" strokeWidth="6" />
         <circle
           cx="34" cy="34" r={r} fill="none"
