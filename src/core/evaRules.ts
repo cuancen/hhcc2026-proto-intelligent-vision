@@ -1,5 +1,5 @@
 import { P } from './params';
-import type { AlertLevel, CockpitState, PendingChoice } from './types';
+import type { AlertLevel, CockpitState, EmotionId, PendingChoice } from './types';
 import { complexityOf, fuseFatigue } from './sim';
 
 export interface EvaCtx {
@@ -9,11 +9,26 @@ export interface EvaCtx {
   /** 场景脚本队列：[触发时刻, 回调] */
   q: [number, () => void][];
   ids: { chat: number; alert: number };
-  flags: { complexActive: boolean; musicBeforeBlock: CockpitState['cabin']['music'] };
+  flags: {
+    complexActive: boolean;
+    musicBeforeBlock: CockpitState['cabin']['music'];
+    /** 视觉情绪追踪：当前稳定情绪 / 起始时刻 / 已主动关怀过的情绪（防唠叨） */
+    visEmo: { cur: EmotionId; since: number; chatted: EmotionId };
+  };
 }
 
 export function createCtx(s: CockpitState): EvaCtx {
-  return { s, cd: {}, q: [], ids: { chat: 1, alert: 1 }, flags: { complexActive: false, musicBeforeBlock: 'Soft' } };
+  return {
+    s,
+    cd: {},
+    q: [],
+    ids: { chat: 1, alert: 1 },
+    flags: {
+      complexActive: false,
+      musicBeforeBlock: 'Soft',
+      visEmo: { cur: 'neutral', since: 0, chatted: 'neutral' },
+    },
+  };
 }
 
 const round1 = (v: number) => Math.round(v * 10) / 10;
@@ -291,6 +306,47 @@ export function runRules(ctx: EvaCtx, dt: number) {
     gate(ctx, 'absent', 10, () => {
       alert(ctx, 'warn', 'No driver detected in view — please check your seating position.');
     });
+  }
+
+  // 2.5) 视觉情绪主动关怀：非 neutral 情绪稳定 ≥stableMin → 询问/开导/建议 + 座舱联动
+  //      同一情绪只关怀一次（chatted），跨情绪话题冷却（chatCd）防唠叨
+  const ve: EmotionId | null = v && v.present ? v.emotion : null;
+  if (!ve || ve === 'neutral') {
+    ctx.flags.visEmo.cur = 'neutral';
+    ctx.flags.visEmo.since = s.t;
+  } else {
+    if (ctx.flags.visEmo.cur !== ve) {
+      ctx.flags.visEmo.cur = ve;
+      ctx.flags.visEmo.since = s.t;
+    }
+    if (ve !== ctx.flags.visEmo.chatted && s.t - ctx.flags.visEmo.since >= P.visionEmotion.stableMin) {
+      gate(ctx, `emoChat-${ve}`, P.visionEmotion.chatCd, () => {
+        if (ve === 'sad') {
+          // 悲伤：开导 + 暖光轻音乐
+          adjust(ctx, () => { s.cabin.ambient = 'Warm Amber'; s.cabin.music = 'Soft'; });
+          say(ctx, 'care', 'You look a little down. I have warmed the ambient light and put on soft music — I am here anytime you want to talk.');
+          s.stats.proact++;
+        } else if (ve === 'happy') {
+          // 开心：主动问好事，共享情绪（不调节座舱）
+          say(ctx, 'care', 'You seem to be in a really good mood — did something nice happen? I would love to hear about it.');
+        } else if (ve === 'angry') {
+          // 愤怒（多为拥堵路怒）：安抚建议 + 切舒缓音乐；L2 兜底跟车
+          const congested = s.drive.road === 'congested' || ctx.flags.complexActive;
+          adjust(ctx, () => { if (s.cabin.music !== 'Off' && s.cabin.music !== 'Soft') s.cabin.music = 'Soft'; });
+          say(ctx, 'care', congested
+            ? 'Heavy traffic can be really frustrating. L2 is holding the following distance for you — take a slow deep breath; I have switched to calmer music.'
+            : 'I sense some tension. Warm light and calmer music are on — safety first, we will get through this together.');
+          s.stats.proact++;
+        } else if (ve === 'drowsy') {
+          // 困倦（情绪维度）：建议休息（与疲劳守护互补，话术不重复升级）
+          say(ctx, 'care', 'Your eyes look drowsy — consider a short break at the next service area; I can plan one for you.');
+        } else if (ve === 'surprised') {
+          // 惊讶：轻确认，不打扰
+          say(ctx, 'care', 'Everything alright? I am keeping an eye on the road together with you.');
+        }
+        ctx.flags.visEmo.chatted = ve;
+      });
+    }
   }
 
   // 3) 疲劳守护：双阈值（60 温柔关怀 / 85 紧急干预 + 用户选择分支）

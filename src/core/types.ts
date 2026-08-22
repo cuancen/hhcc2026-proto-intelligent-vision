@@ -2,6 +2,10 @@ import type { ScenarioId } from './params';
 
 export type RoadKind = 'city' | 'highway' | 'congested';
 export type AlertLevel = 'info' | 'warn' | 'urgent';
+
+/** 视觉情绪检测结果（blendshapes 启发式，6 态；drowsy 与疲劳守护互补） */
+export type EmotionId = 'neutral' | 'happy' | 'sad' | 'angry' | 'surprised' | 'drowsy';
+
 export type EvaMode = 'Observing' | 'Guarding' | 'Intervening' | 'Resting' | 'Cautious';
 export type MusicKind = 'Soft' | 'Upbeat' | 'News' | 'Off';
 
@@ -34,6 +38,8 @@ export interface VisionSample {
   pitch: number;
   /** 眼睛纵横比（左右均值，展示用） */
   ear: number;
+  /** 面部情绪（blendshapes 启发式 6 态；sim 通道按工况合成） */
+  emotion: EmotionId;
   source: 'model' | 'sim';
 }
 

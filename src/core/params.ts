@@ -35,6 +35,14 @@ export const P = {
   /** 情绪阈值（0-100，50 平静） */
   emotionTh: { low: 32, high: 68 } as const,
 
+  /** 视觉情绪（blendshapes 启发式 6 态）主动关怀 */
+  visionEmotion: {
+    /** 情绪稳定判定时长（仿真分钟）：持续稳定才主动开口，防瞬时抖动 */
+    stableMin: 0.3,
+    /** 同一情绪话题冷却（仿真分钟），防唠叨 */
+    chatCd: 5,
+  } as const,
+
   /** 各规则冷却（仿真分钟） */
   cd: { care: 8, urgent: 15, emotion: 10, lookWarn: 1.5, complex: 6, l2Remind: 5 } as const,
 

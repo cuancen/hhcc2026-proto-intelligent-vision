@@ -27,7 +27,7 @@ Nowhere in the product (UI, scripts, docs) do we use L3/L4 autonomy claims; ever
 ```bash
 npm install     # postinstall copies the MediaPipe WASM runtime into public/ (self-hosted, offline-ready)
 npm run dev     # http://localhost:5173 (Vite auto-increments the port if taken)
-npm test        # 43 regression tests (core / vision metrics / geometry — vitest, zero DOM)
+npm test        # 51 regression tests (core / vision metrics / emotion / geometry — vitest, zero DOM)
 npm run build   # type-check + production build
 ```
 
@@ -60,7 +60,7 @@ Stability by design: simulation runs on `setInterval` (never freezes in backgrou
 |---|---|
 | Interaction & UX | Three-column cockpit layout + 60 s narrated auto-demo + hotkeys (1/2/3/D/L) + conversational commands + one-click scene injection |
 | Accessibility | 4-step font scaling (persisted) / high-contrast mode / full keyboard operation / aria-live graded announcements / prefers-reduced-motion / skip links |
-| Solid core | Zero-DOM kernel + 43 regression tests + single-source params + multi-source vision fallback + simulated-signal fallback |
+| Solid core | Zero-DOM kernel + 51 regression tests + single-source params + multi-source vision fallback + simulated-signal fallback |
 | Versatility | 3 demo scenes × 3 sim speeds × camera/simulated vision sources × responsive layout (desktop/tablet/phone) |
 | Iteration evidence | Everything committed during the official window; the commit history is the iteration record (see CHANGELOG.md) |
 

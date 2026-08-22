@@ -1,6 +1,6 @@
 import type { RefObject } from 'react';
 import type { DmsStatus } from '../../vision/dms';
-import type { VisionSample } from '../../core';
+import type { EmotionId, VisionSample } from '../../core';
 import type { DmsMode } from '../hooks/useDms';
 
 interface DmsPanelProps {
@@ -18,6 +18,16 @@ const SOURCE_LABEL: Record<DmsMode, string> = {
   off: 'Off',
   model: '● Camera model inference',
   sim: '◆ Simulated signal (same pipeline)',
+};
+
+/** 情绪展示：emoji + 英文标签（检测 6 态，与 Eva 主动关怀联动） */
+const EMO_UI: Record<EmotionId, { emoji: string; label: string }> = {
+  neutral: { emoji: '😐', label: 'Neutral' },
+  happy: { emoji: '😊', label: 'Happy' },
+  sad: { emoji: '😢', label: 'Sad' },
+  angry: { emoji: '😠', label: 'Angry' },
+  surprised: { emoji: '😮', label: 'Surprised' },
+  drowsy: { emoji: '😪', label: 'Drowsy' },
 };
 
 /** 机器视觉 · 驾驶员监测面板：摄像头画面 + 关键点叠加 + DMS 指标 */
@@ -98,6 +108,16 @@ export default function DmsPanel({
         </div>
         <div className={metricCls(false, !!sample && !sample.present)}>
           <span>Driver present</span><b>{sample ? (sample.present ? 'Yes' : 'Not detected') : '—'}</b>
+        </div>
+        <div
+          className={metricCls(
+            !!sample && (sample.emotion === 'sad' || sample.emotion === 'drowsy' || sample.emotion === 'surprised'),
+            !!sample && sample.emotion === 'angry',
+          )}
+          style={{ gridColumn: '1 / -1' }}
+        >
+          <span>Emotion (6-class)</span>
+          <b>{sample && sample.present ? `${EMO_UI[sample.emotion].emoji} ${EMO_UI[sample.emotion].label}` : '—'}</b>
         </div>
       </div>
     </section>

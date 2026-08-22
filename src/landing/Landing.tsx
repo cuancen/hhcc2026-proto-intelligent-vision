@@ -35,7 +35,7 @@ const STATS = [
   { b: '478', span: 'facial landmarks · on-device' },
   { b: '0', span: 'frames uploaded · privacy first' },
   { b: '3', span: 'demo scenes · 60 s auto tour' },
-  { b: '43', span: 'kernel & vision regressions' },
+  { b: '51', span: 'regression tests · zero DOM kernel' },
 ];
 
 /**

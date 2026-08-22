@@ -2,6 +2,13 @@
 
 本项目遵循 [Conventional Commits](https://www.conventionalcommits.org/)，提交历史即官方开发期内的迭代证据。
 
+## 0.8.0 —— 视觉情绪检测 × Eva 主动情绪关怀（6 态 · 零新增模型）
+
+- `feat(vision)` 情绪检测：复用 face_landmarker 的 blendshapes 输出（`outputFaceBlendshapes`），加权启发式纯函数 `classifyEmotion` 分 6 态（neutral/happy/sad/angry/surprised/drowsy，微笑抑制 angry 防误报）+ 10 帧多数投票平滑——零新增模型、零额外加载，离线可用；模拟信号按工况合成情绪（拥堵→angry / 高疲劳→drowsy / 情绪值高→happy / 低→sad），与真实模型走同一套指标管线
+- `feat(core)` Eva 主动情绪关怀：非 neutral 情绪稳定 ≥0.3 仿真分钟即主动开口——悲伤开导（暖氛围灯+轻音乐联动）/ 开心询问好事 / 堵车愤怒安抚（深呼吸建议 + L2 跟车兜底 + 切舒缓音乐）/ 困倦休息建议 / 惊讶轻确认；同一情绪只关怀一次 + 话题冷却 5 分钟防唠叨（`visionEmotion` 参数，reset 同步复位）
+- `feat(ui)` DMS 面板新增 Emotion (6-class) 指标格（emoji + 标签横跨两列，sad/drowsy/surprised 琥珀警示、angry 红色告警）
+- `test` 情绪分类（微笑/皱眉/抑制项/低强度回落）+ 平滑器多数投票 + 关怀规则（sad 联动/拥堵安抚/防唠叨/稳定期）共 8 项新增，合计 51 项全绿；浏览器实测：复杂路况拥堵时 sim 合成 angry → Eva 主动安抚话术 + 音乐自动切舒缓
+
 ## 0.7.0 —— 全站界面文案英文化（国际展示 / 开源就绪）
 
 - `feat(i18n)` 全站 UI 文案切换为英文：内核播报/告警/休息选择分支（evaRules）、场景标签与描述、16 个座舱面板、Landing 首页、开机自检清单、自动演示讲解词、全部 aria/title、index.html（lang/title/description）

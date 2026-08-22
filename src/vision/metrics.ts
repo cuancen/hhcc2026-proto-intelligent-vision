@@ -3,6 +3,8 @@
  * 输入为 MediaPipe FaceLandmarker 的 478 点面部关键点与 4×4 变换矩阵。
  */
 
+import type { EmotionId } from '../core/types';
+
 export interface Pt {
   x: number;
   y: number;
@@ -107,6 +109,77 @@ export function createLookAwayTracker(th: { yaw: number; pitch: number } = LOOK_
         lookAwaySec: awaySince === null ? 0 : Math.max(0, t - awaySince),
         looking: away,
       };
+    },
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* 情绪分类：blendshapes 加权启发式（零额外模型，复用 face_landmarker） */
+/* ------------------------------------------------------------------ */
+
+export const EMOTION_IDS = ['neutral', 'happy', 'sad', 'angry', 'surprised', 'drowsy'] as const;
+
+/** 情绪评分阈值（0-1）：最高分不超过该值视为 neutral */
+export const EMOTION_TH = 0.25;
+
+/**
+ * 每种情绪的 blendshape 加权表（ARKit 52 系数名）：[系数名, 权重]，
+ * 负权重为抑制项（如微笑抑制 angry，防止误报）。
+ */
+const EMOTION_RULES: Record<Exclude<EmotionId, 'neutral'>, [string, number][]> = {
+  happy: [
+    ['mouthSmileLeft', 0.5], ['mouthSmileRight', 0.5],
+    ['cheekSquintLeft', 0.25], ['cheekSquintRight', 0.25],
+  ],
+  sad: [
+    ['mouthFrownLeft', 0.5], ['mouthFrownRight', 0.5],
+    ['browInnerUp', 0.5],
+  ],
+  angry: [
+    ['browDownLeft', 0.4], ['browDownRight', 0.4],
+    ['noseSneerLeft', 0.2], ['noseSneerRight', 0.2],
+    ['mouthPressLeft', 0.1], ['mouthPressRight', 0.1],
+    ['mouthSmileLeft', -0.3], ['mouthSmileRight', -0.3],
+  ],
+  surprised: [
+    ['browOuterUpLeft', 0.4], ['browOuterUpRight', 0.4],
+    ['eyeWideLeft', 0.2], ['eyeWideRight', 0.2], ['jawOpen', 0.2],
+  ],
+  drowsy: [
+    ['eyeBlinkLeft', 0.4], ['eyeBlinkRight', 0.4],
+    ['eyeSquintLeft', 0.1], ['eyeSquintRight', 0.1],
+  ],
+};
+
+const clamp01 = (v: number) => clamp(v, 0, 1);
+
+/** 加权求和 → 取最高分情绪；不超过阈值回落 neutral */
+export function classifyEmotion(bs: Record<string, number>, th: number = EMOTION_TH): { id: EmotionId; score: number } {
+  let best: EmotionId = 'neutral';
+  let bestScore = th;
+  for (const id of EMOTION_IDS) {
+    if (id === 'neutral') continue;
+    let score = 0;
+    for (const [name, w] of EMOTION_RULES[id]) score += (bs[name] ?? 0) * w;
+    score = clamp01(score);
+    if (score > bestScore) { bestScore = score; best = id; }
+  }
+  return { id: best, score: best === 'neutral' ? 0 : bestScore };
+}
+
+/** 情绪平滑器：最近 window 帧多数投票，未过半回落 neutral（防瞬时抖动/眨眼误判） */
+export function createEmotionSmoother(window = 10) {
+  const hist: EmotionId[] = [];
+  return {
+    feed(id: EmotionId): EmotionId {
+      hist.push(id);
+      if (hist.length > window) hist.shift();
+      const counts = new Map<EmotionId, number>();
+      for (const e of hist) counts.set(e, (counts.get(e) ?? 0) + 1);
+      let best: EmotionId = 'neutral';
+      let n = 0;
+      for (const [e, c] of counts) if (c > n) { n = c; best = e; }
+      return n > window / 2 ? best : 'neutral';
     },
   };
 }

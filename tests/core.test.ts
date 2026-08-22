@@ -10,6 +10,7 @@ const idleVision = (over: Partial<VisionSample> = {}): VisionSample => ({
   yaw: 0,
   pitch: 0,
   ear: 0.32,
+  emotion: 'neutral',
   source: 'model',
   ...over,
 });
@@ -239,5 +240,51 @@ describe('快照隔离与复位', () => {
     expect(api.state.t).toBe(0);
     expect(api.state.drive.rain).toBe(false);
     expect(api.state.chat.length).toBe(0);
+  });
+});
+
+describe('视觉情绪主动关怀', () => {
+  it('检测到 sad 稳定 → 开导 + 暖氛围灯/轻音乐联动', () => {
+    const api = createCockpit();
+    api.actions.scenario('commute');
+    run(api, 2);
+    api.actions.setVision(idleVision({ emotion: 'sad' }));
+    run(api, 1); // > stableMin 0.3 仿真分钟
+    expect(api.state.chat.some((c) => c.text.includes('down'))).toBe(true);
+    expect(api.state.cabin.ambient).toBe('Warm Amber');
+    expect(api.state.cabin.music).toBe('Soft');
+  });
+
+  it('拥堵 + angry → 安抚建议（深呼吸/L2 跟车/舒缓音乐）', () => {
+    const api = createCockpit();
+    api.actions.scenario('complex');
+    run(api, 2.6); // 雨(0.3)+拥堵(1.2) 起，路况复杂
+    api.actions.setVision(idleVision({ emotion: 'angry' }));
+    run(api, 1);
+    expect(api.state.chat.some((c) => c.text.includes('breath') || c.text.includes('tension'))).toBe(true);
+  });
+
+  it('happy → 主动询问好事；同一情绪不重复唠叨，切换情绪可再触发', () => {
+    const api = createCockpit();
+    run(api, 1);
+    api.actions.setVision(idleVision({ emotion: 'happy' }));
+    run(api, 1);
+    expect(api.state.chat.some((c) => c.text.includes('good mood'))).toBe(true);
+    const chats = api.state.chat.length;
+    run(api, 2); // 同情绪持续：chatted 标记拦截
+    expect(api.state.chat.length).toBe(chats);
+    api.actions.setVision(idleVision({ emotion: 'sad' }));
+    run(api, 1); // 换情绪：新话题允许
+    expect(api.state.chat.some((c) => c.text.includes('down'))).toBe(true);
+  });
+
+  it('情绪未达稳定时长不触发（防瞬时抖动）', () => {
+    const api = createCockpit();
+    run(api, 1);
+    api.actions.setVision(idleVision({ emotion: 'surprised' }));
+    api.step(0.1); // < stableMin
+    expect(api.state.chat.every((c) => !c.text.includes('alright?'))).toBe(true);
+    run(api, 1);
+    expect(api.state.chat.some((c) => c.text.includes('alright?'))).toBe(true);
   });
 });

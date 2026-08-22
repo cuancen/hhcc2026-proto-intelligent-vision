@@ -19,6 +19,7 @@
 | lookAwayTh | warn 2s / esc 4s | 视线离开分级；≥4s 触发 L2 降级 |
 | lookAwayFatigueCap | 40 | 视线离开折算疲劳上限 |
 | complexityBlock | 2 | 雨+夜+拥堵 因子 ≥2 屏蔽娱乐 |
+| visionEmotion | stableMin 0.3 / chatCd 5 分钟 | 视觉情绪稳定判定与主动关怀冷却 |
 | emotionTh | low 32 / high 68 | 情绪四联动阈值 |
 | cd | care 8 / urgent 15 / emotion 10 / look 1.5 / complex 6 / l2Remind 5 分钟 | 规则冷却 |
 | speedTau | 0.9 分钟 | 速度一阶惯性时间常数 |
@@ -31,6 +32,7 @@
 | PERCLOS 窗口 | 30s 滑动 | 闭眼帧占比；blinkPm 按 60s 窗口外推 |
 | LOOK_TH | yaw 22° / pitch 18° | 头部姿态超阈记为视线离开 |
 | EAR 六点索引 | 右[33,160,158,133,153,144] 左[362,385,387,263,373,380] | MediaPipe 478 点网格 |
+| 情绪分类 | blendshapes 加权启发式（EMOTION_TH 0.25）+ 10 帧多数投票平滑 | 6 态 neutral/happy/sad/angry/surprised/drowsy；复用同一 face_landmarker 模型，零额外开销 |
 
 ## 三、数据流
 
@@ -38,7 +40,7 @@
 摄像头 ──MediaPipe(本地WASM/GPU)──▶ 478 关键点 + 4×4 变换矩阵
                                       │ metrics.ts 纯函数
                                       ▼
-                     VisionSample{present,perclos,blinkPm,lookAwaySec,yaw,pitch,ear}
+                     VisionSample{present,perclos,blinkPm,lookAwaySec,yaw,pitch,ear,emotion}
                                       │ act.setVision() ──(模拟信号走同一管线)──▶
                                       ▼
    工况仿真(sim.ts) ──▶ CockpitState ◀─ 融合: fatigue = max(simFatigue, 185×perclos, lookAway×6)
@@ -66,7 +68,7 @@
 ## 五、验证流程（每次改动必做）
 
 ```bash
-npm test          # 24 项：内核 16 + 视觉指标 8
+npm test          # 51 项：内核 20 + 视觉指标 12 + 座舱/几何 19
 npm run build     # tsc --noEmit + vite build
 npm run dev       # 手动：三场景 + 自动演示 + 摄像头/模拟切换 + 键盘 1/2/3/D/L
 ```

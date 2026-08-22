@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   EAR_CLOSED,
   EYE_RIGHT,
+  classifyEmotion,
+  createEmotionSmoother,
   createLookAwayTracker,
   createPerclosTracker,
   earOf,
@@ -114,5 +116,35 @@ describe('视线离开追踪器', () => {
   it('俯仰超阈同样判定离开', () => {
     const tr = createLookAwayTracker();
     expect(tr.feed(0, 0, 25).looking).toBe(true);
+  });
+});
+
+describe('情绪分类（blendshapes 启发式）', () => {
+  it('微笑+脸颊上抬 → happy；嘴角下垂+内眉上挑 → sad', () => {
+    expect(classifyEmotion({ mouthSmileLeft: 0.7, mouthSmileRight: 0.7, cheekSquintLeft: 0.4, cheekSquintRight: 0.4 }).id).toBe('happy');
+    expect(classifyEmotion({ mouthFrownLeft: 0.6, mouthFrownRight: 0.6, browInnerUp: 0.6 }).id).toBe('sad');
+  });
+
+  it('眉压低+鼻冷笑 → angry（微笑为抑制项）；眉外抬+瞪眼张嘴 → surprised', () => {
+    expect(classifyEmotion({ browDownLeft: 0.7, browDownRight: 0.7, noseSneerLeft: 0.5, noseSneerRight: 0.5 }).id).toBe('angry');
+    // 微笑同时存在时 angry 被抑制，happy 胜出——防止笑场误报路怒
+    expect(classifyEmotion({ browDownLeft: 0.7, browDownRight: 0.7, mouthSmileLeft: 0.8, mouthSmileRight: 0.8 }).id).toBe('happy');
+    expect(classifyEmotion({ browOuterUpLeft: 0.7, browOuterUpRight: 0.7, eyeWideLeft: 0.6, eyeWideRight: 0.6, jawOpen: 0.7 }).id).toBe('surprised');
+  });
+
+  it('持续闭眼 → drowsy；零输入与低强度 → neutral', () => {
+    expect(classifyEmotion({ eyeBlinkLeft: 0.9, eyeBlinkRight: 0.9 }).id).toBe('drowsy');
+    expect(classifyEmotion({}).id).toBe('neutral');
+    expect(classifyEmotion({ mouthSmileLeft: 0.1, mouthSmileRight: 0.1 }).id).toBe('neutral');
+  });
+
+  it('平滑器多数投票：未过半回落 neutral，稳定后输出多数情绪', () => {
+    const sm = createEmotionSmoother(4);
+    expect(sm.feed('happy')).toBe('neutral'); // 1/4 未过半
+    expect(sm.feed('happy')).toBe('neutral');
+    expect(sm.feed('happy')).toBe('happy');   // 3/4 过半
+    expect(sm.feed('sad')).toBe('happy');     // 3/4 仍是 happy
+    expect(sm.feed('sad')).toBe('neutral');   // 2/4 未过半
+    expect(sm.feed('sad')).toBe('sad');       // 3/4 sad
   });
 });

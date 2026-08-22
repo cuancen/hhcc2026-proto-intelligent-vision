@@ -26,7 +26,7 @@
 ```bash
 npm install     # postinstall 自动将 MediaPipe WASM 拷贝到 public/（自托管，离线可用）
 npm run dev     # http://localhost:5173
-npm test        # 43 项内核/视觉/几何回归（vitest，零 DOM）
+npm test        # 51 项内核/视觉/情绪/几何回归（vitest，零 DOM）
 npm run build   # 类型检查 + 生产构建
 ```
 

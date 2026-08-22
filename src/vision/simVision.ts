@@ -5,7 +5,7 @@
  *  - 疲劳度越高 → 眨眼越频繁、闭眼时长越长 → PERCLOS 上升
  *  - 复杂路况 / 高疲劳 → 随机出现 2~5 秒视线离开事件
  */
-import type { CockpitState, VisionSample } from '../core';
+import type { CockpitState, EmotionId, VisionSample } from '../core';
 import { createLookAwayTracker, createPerclosTracker } from './metrics';
 
 export interface SimVisionHandle {
@@ -26,6 +26,11 @@ export function startSimVision(
   let awayYaw = 0;
   let awayPitch = 0;
   let nextAwayAt = t0 + 6 + Math.random() * 8;
+
+  // 情绪事件调度：按工况选情绪并保持一段时间（供 Eva 主动关怀链路演示）
+  let emoUntil = 0;
+  let emoCur: EmotionId = 'neutral';
+  let nextEmoAt = t0 + 6 + Math.random() * 6;
 
   const iv = window.setInterval(() => {
     const s = getState();
@@ -51,6 +56,24 @@ export function startSimVision(
     const yaw = looking ? awayYaw : Math.sin(t * 0.8) * 4;
     const pitch = looking ? awayPitch : Math.sin(t * 0.6) * 3;
 
+    // 情绪合成：拥堵→angry / 高疲劳→drowsy / 情绪值高→happy / 低→sad，与工况联动
+    if (t >= nextEmoAt && emoUntil < t) {
+      if (s.drive.road === 'congested' && Math.random() < 0.8) {
+        emoCur = 'angry'; emoUntil = t + 5 + Math.random() * 4;
+      } else if (fatigue > 55) {
+        emoCur = 'drowsy'; emoUntil = t + 4 + Math.random() * 4;
+      } else if (s.driver.emotion >= 66) {
+        emoCur = 'happy'; emoUntil = t + 6 + Math.random() * 5;
+      } else if (s.driver.emotion <= 34) {
+        emoCur = 'sad'; emoUntil = t + 6 + Math.random() * 5;
+      } else if (Math.random() < 0.25) {
+        emoCur = 'surprised'; emoUntil = t + 2.5;
+      } else {
+        emoCur = 'neutral'; emoUntil = t + 4;
+      }
+      nextEmoAt = emoUntil + 7 + Math.random() * 14;
+    }
+
     const p = perclos.feed(t, ear);
     const la = lookAway.feed(t, yaw, pitch);
 
@@ -62,6 +85,7 @@ export function startSimVision(
       yaw,
       pitch,
       ear,
+      emotion: t < emoUntil ? emoCur : 'neutral',
       source: 'sim',
     });
   }, 1000 / hz);

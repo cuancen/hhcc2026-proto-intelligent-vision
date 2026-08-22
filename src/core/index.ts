@@ -77,6 +77,7 @@ export function createCockpit(): Cockpit {
         ctx.cd = {};
         ctx.q = [];
         ctx.flags.complexActive = false;
+        ctx.flags.visEmo = { cur: 'neutral', since: 0, chatted: 'neutral' };
         applyScenario(ctx, state.scenario);
       },
     },
