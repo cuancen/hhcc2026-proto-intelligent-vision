@@ -23,7 +23,7 @@
    - 写明“我们运行时覆盖为石墨金属材质” ✅
    - **页脚可见署名** ✅（Landing 页脚展示作者/链接/CC-BY/社区模型声明）
 3. **风险话术**：模型为第三方自制，**不能宣称吉利官方原厂资产**；BP/文档/路演均需说明。
-4. **兜底预案**：若现场加载卡顿，代码已内置自动回退手写 Canvas 线框（零外部资源、零署名负担）。
+4. **兜底预案**：若现场加载卡顿或失败，代码保留 EVA 头像状态画面，座舱 HUD、控制和证据仍可使用。
 
 ### 可直接复制的署名块（英文）
 
@@ -55,9 +55,9 @@ This static glb asset is used for the landing hero and cockpit digital-twin prot
 |---|---|
 | `public/models/geely.glb` | 压缩后模型（替换了此前被拷入的 24MB 原版） |
 | `src/landing/carScene.ts` | three.js 场景：石墨金属材质覆盖（跳过玻璃/发光件）、RoomEnvironment 反射、品牌轮廓光、贴地软阴影、横纵双向自动取景、约 28 秒自转 + 悬浮、完整 dispose |
-| `src/shell/twin/` | 整车数字孪生：剧情镜头、车身透视、程序化座舱/EVA/热点/视线/阅读灯与二维安全舞台 |
-| `src/landing/CarModel.tsx`（新增） | React 包装：动态 import（three 独立 chunk ~164KB gzip，不进主包）、requestIdleCallback 后加载、**加载/失败自动回退 Canvas 线框**、交叉淡入、prefers-reduced-motion 静帧 |
-| `src/landing/CabinModel.tsx`（保留） | 手写线框座舱，作为加载中/失败时的兜底视觉 |
+| `src/shell/twin/` | 整车数字孪生：三幕剧情镜头、车身透视、程序化座舱/EVA、DMS 光束、雨夜反馈与 EVA 状态降级 |
+| `src/landing/CarModel.tsx` | React 包装：动态 import、requestIdleCallback 后加载、EVA 加载/失败状态、交叉淡入、prefers-reduced-motion 静帧 |
+| `src/shared/EvaLoadingAvatar.tsx` | 首页、进舱和驾驶舱共用的动态 EVA 头像状态组件 |
 | `src/landing/Landing.tsx` | Hero 接入 `<CarModel />` + 页脚 CC-BY 署名 |
 | `src/landing/landing.css` | `.car-model/.car-stage/.car-canvas` 过渡与响应式样式 |
 | `AI_USAGE.md` | 3D-Asset Note 署名 + three.js 依赖许可 |
@@ -68,12 +68,12 @@ This static glb asset is used for the landing hero and cockpit digital-twin prot
 ## 五、怎么看效果 / 排查
 
 1. 首页与 `#/cockpit` 都使用同一车型资产；座舱页以剧情镜头展示整车和半透明座舱。
-2. 首帧先显示轻量线框/二维舞台，模型就绪后淡入石墨金属 3D 车——这是回退/过渡机制，不是 bug。
-3. 若长时间停留在线框：F12 控制台找 `[CarModel] 3D 车模型加载失败` 警告（网络/GLB/WebGL 任一环节失败都会触发并静默回退）。
-4. 性能说明：688k 三角面对现代浏览器无压力；已做不开阴影贴图、离屏暂停渲染（IntersectionObserver）、DPR 上限 2。若仍卡顿，可换 CC0 低模 + wireframe 方案（兜底预案）。
+2. 首帧先显示 EVA 加载头像，模型就绪后淡入石墨金属 3D 车；失败时头像改为 `3D TWIN OFFLINE`，不是卡死。
+3. 若长时间停留在离线状态：F12 控制台查找 `[CarModel] 3D vehicle unavailable` 或 `[TwinStage] 3D unavailable` 警告。
+4. 性能说明：688k 三角面已采用无实时阴影、离屏暂停、事件驱动渲染和 DPR 上限；现场功能不依赖 3D 成功加载。
 
 ## 六、验证记录（2026-08-22）
 
 - `npm test`：**63/63 全绿**
 - `npm run build`：通过；three.js 独立 chunk（gzip ~164KB），主包不受影响
-- 浏览器实测：Landing 整车可见；座舱 1426×1114 / 1440×1000 / 390×844 无溢出，10 镜头、WebGL 降级与完成冻结均通过
+- 浏览器实测：Landing 整车可见；座舱 1426×1114 / 1440×1000 / 390×844 无溢出，9 镜头、EVA 降级与完成冻结均通过

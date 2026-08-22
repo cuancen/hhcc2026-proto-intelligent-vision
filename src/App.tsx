@@ -5,13 +5,12 @@ import { ambientLevelOf } from './shell/ambient';
 import { runAutoDemo } from './shell/autoDemo';
 import type { AutoDemoHandle, DemoCue, DemoStep, DemoTransportState } from './shell/autoDemo';
 import CinemaControls from './shell/components/CinemaControls';
+import type { ExperienceId } from './shell/components/CinemaControls';
 import CockpitHeader from './shell/components/CockpitHeader';
 import EntryTransition from './shell/components/EntryTransition';
 import EvaNarration from './shell/components/EvaNarration';
 import EvidenceDrawer from './shell/components/EvidenceDrawer';
-import StoryRail from './shell/components/StoryRail';
-import SystemsRail from './shell/components/SystemsRail';
-import { deriveMood } from './shell/evaFace';
+import { deriveEvaExpression, deriveMood } from './shell/evaFace';
 import { useCockpit } from './shell/hooks/useCockpit';
 import { useDms } from './shell/hooks/useDms';
 import { useUiPrefs } from './shell/hooks/useUiPrefs';
@@ -22,7 +21,6 @@ const SCENARIO_KEYS: Record<string, ScenarioId> = {
   '1': 'commute',
   '2': 'fatigue',
   '3': 'complex',
-  '4': 'visionLoop',
 };
 
 function routeOf(): 'landing' | 'cockpit' {
@@ -30,15 +28,12 @@ function routeOf(): 'landing' | 'cockpit' {
 }
 
 function cueFromState(state: CockpitState): DemoCue | null {
-  switch (state.context.phase) {
-    case 'observed': return 'observe-cabin';
-    case 'searching': return 'gaze-away';
-    case 'assisting': return 'assistance';
-    case 'verified': return 'verified';
-    case 'exit-check': return 'exit-filter';
-    case 'exit-reminded': return 'completed';
-    default: return null;
-  }
+  if (state.scenario === 'commute') return 'commute';
+  if (state.scenario === 'complex') return 'complex-roads';
+  if (state.driver.resting) return 'fatigue-rest';
+  if (state.driver.fatigue >= 85 || state.pending) return 'fatigue-urgent';
+  if (state.driver.fatigue >= 60) return 'fatigue-care';
+  return 'fatigue-monitoring';
 }
 
 function latestEvaMessage(state: CockpitState): ChatMsg | null {
@@ -57,11 +52,12 @@ export default function App() {
   const [twinReady, setTwinReady] = useState(false);
   const [transport, setTransport] = useState<DemoTransportState>('ready');
   const [demoStep, setDemoStep] = useState<DemoStep | null>(null);
-  const [selectedScenario, setSelectedScenario] = useState<ScenarioId>('visionLoop');
+  const [selectedExperience, setSelectedExperience] = useState<ExperienceId>('auto-tour');
   const [evidenceOpen, setEvidenceOpen] = useState(false);
   const demoRef = useRef<AutoDemoHandle | null>(null);
   const dmsRef = useRef(dms);
   const handoffConsumedRef = useRef(false);
+  const evidenceResumeRef = useRef(false);
   dmsRef.current = dms;
 
   useEffect(() => {
@@ -73,7 +69,7 @@ export default function App() {
   useEffect(() => {
     if (route !== 'cockpit') return;
     document.body.classList.add('cockpit-body');
-    document.title = 'EVA Digital Twin — Vision Context Loop';
+    document.title = 'EVA Digital Twin — Smart Cockpit';
     return () => {
       document.body.classList.remove('cockpit-body');
       demoRef.current?.stop();
@@ -83,7 +79,7 @@ export default function App() {
   }, [pause, route]);
 
   const startDemo = useCallback(() => {
-    setSelectedScenario('visionLoop');
+    setSelectedExperience('auto-tour');
     setDemoStep(null);
     if (demoRef.current) {
       demoRef.current.restart();
@@ -108,11 +104,7 @@ export default function App() {
   }, []);
 
   const runScenario = useCallback((id: ScenarioId) => {
-    setSelectedScenario(id);
-    if (id === 'visionLoop') {
-      startDemo();
-      return;
-    }
+    setSelectedExperience(id);
     stopDemoHandle();
     pause();
     act.reset();
@@ -120,11 +112,16 @@ export default function App() {
     refresh();
     play();
     setTransport('running');
-  }, [act, pause, play, refresh, startDemo, stopDemoHandle]);
+  }, [act, pause, play, refresh, stopDemoHandle]);
+
+  const runExperience = useCallback((id: ExperienceId) => {
+    if (id === 'auto-tour') startDemo();
+    else runScenario(id);
+  }, [runScenario, startDemo]);
 
   const primaryAction = useCallback(() => {
     if (transport === 'ready') {
-      runScenario(selectedScenario);
+      runExperience(selectedExperience);
       return;
     }
     if (transport === 'running') {
@@ -137,13 +134,30 @@ export default function App() {
       else { play(); setTransport('running'); }
       return;
     }
-    runScenario(selectedScenario);
-  }, [pause, play, runScenario, selectedScenario, transport]);
+    runExperience(selectedExperience);
+  }, [pause, play, runExperience, selectedExperience, transport]);
 
   const restart = useCallback(() => {
-    if (selectedScenario === 'visionLoop') startDemo();
-    else runScenario(selectedScenario);
-  }, [runScenario, selectedScenario, startDemo]);
+    if (selectedExperience === 'auto-tour') startDemo();
+    else runScenario(selectedExperience);
+  }, [runScenario, selectedExperience, startDemo]);
+
+  const openEvidence = useCallback(() => {
+    evidenceResumeRef.current = transport === 'running';
+    if (evidenceResumeRef.current) {
+      if (demoRef.current) demoRef.current.pause();
+      else { pause(); setTransport('paused'); }
+    }
+    setEvidenceOpen(true);
+  }, [pause, transport]);
+
+  const closeEvidence = useCallback(() => {
+    setEvidenceOpen(false);
+    if (!evidenceResumeRef.current) return;
+    evidenceResumeRef.current = false;
+    if (demoRef.current) demoRef.current.resume();
+    else { play(); setTransport('running'); }
+  }, [play]);
 
   useEffect(() => {
     if (route !== 'cockpit') return;
@@ -177,9 +191,13 @@ export default function App() {
   const latestEva = latestEvaMessage(snap);
   const mood = deriveMood(snap.evaMode, latestEva, snap.t, { pending: !!snap.pending });
   const cue = demoStep?.cue ?? (transport === 'ready' ? null : cueFromState(snap));
+  const expression = deriveEvaExpression(
+    demoStep?.cue ?? null,
+    mood,
+    dms.sample?.emotion ?? snap.driver.vision?.emotion ?? 'neutral',
+    transport,
+  );
   const twinFrame = deriveTwinFrame(snap, cue, mood);
-  const eventStages = snap.context.events.map((event) => event.stage);
-
   return (
     <div
       className="cinema-cockpit"
@@ -193,31 +211,28 @@ export default function App() {
         <TwinStage liveState={liveState} frame={twinFrame} running={running} onReady={() => setTwinReady(true)} />
         <div className="cinema-vignette" aria-hidden="true" />
 
-        <CockpitHeader snap={snap} step={demoStep} transport={transport} onOpenEvidence={() => setEvidenceOpen(true)} />
+        <CockpitHeader snap={snap} step={demoStep} cue={cue} expression={expression} transport={transport} onOpenEvidence={openEvidence} />
 
         <div className="twin-boundary" aria-label="Data source boundaries">
           <span><i aria-hidden="true" />DMS {dms.mode === 'model' ? 'CAMERA · LOCAL' : dms.mode === 'sim' ? 'SIMULATED SIGNAL' : 'CAMERA READY'}</span>
-          <span>OBJECT EVENTS · SIMULATED</span>
+          <span>DRIVING ENVIRONMENT · SIMULATED</span>
         </div>
 
-        <SystemsRail snap={snap} act={act} refresh={refresh} dms={dms} />
-
         <div className="cinema-story-layer">
-          <EvaNarration message={latestEva} step={demoStep} transport={transport} mood={mood} voiceOn={prefs.voice} />
-          <StoryRail cue={cue} eventStages={eventStages} transport={transport} />
+          <EvaNarration message={latestEva} step={demoStep} transport={transport} mood={mood} expression={expression} voiceOn={prefs.voice} />
           <CinemaControls
             transport={transport}
-            scenario={selectedScenario}
+            experience={selectedExperience}
             onPrimary={primaryAction}
             onRestart={restart}
-            onScenario={runScenario}
+            onExperience={runExperience}
           />
         </div>
       </main>
 
       <EvidenceDrawer
         open={evidenceOpen}
-        onClose={() => setEvidenceOpen(false)}
+        onClose={closeEvidence}
         snap={snap}
         act={act}
         refresh={refresh}

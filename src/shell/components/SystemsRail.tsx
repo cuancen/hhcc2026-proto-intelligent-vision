@@ -38,6 +38,7 @@ export default function SystemsRail({
   const lookAway = sample?.lookAwaySec ?? null;
   const emotion = sample?.emotion ?? 'neutral';
   const source = dms.mode === 'model' ? 'CAMERA · LOCAL' : dms.mode === 'sim' ? 'SIMULATED SIGNAL' : 'READY';
+  const evaState = snap.pending ? 'Intervening' : snap.evaMode;
 
   const toggleL2 = () => {
     act.setAuto(!snap.drive.auto);
@@ -50,7 +51,7 @@ export default function SystemsRail({
         <div className="rail-heading"><span>DRIVER / AGENT</span><i data-live={sample?.present ? 'true' : 'false'} /></div>
         <div className="rail-agent">
           <span className="rail-eyes" aria-hidden="true"><i /><i /></span>
-          <div><small>EVA STATE</small><b>{snap.evaMode}</b></div>
+          <div><small>EVA STATE</small><b>{evaState}</b></div>
         </div>
         <div className="rail-grid">
           <RailMetric label="ATTENTION" value={`${Math.round(snap.driver.attention)}%`} tone={snap.driver.attention < 55 ? 'danger' : snap.driver.attention < 75 ? 'warn' : 'normal'} />

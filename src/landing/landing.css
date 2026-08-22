@@ -181,11 +181,6 @@ body.landing-body {
   place-items: center;
   min-height: 380px;
 }
-.cabin-model {
-  width: 100%;
-  height: clamp(340px, 46vh, 480px);
-  display: block;
-}
 .la-hero-visual::before {
   content: '';
   position: absolute;
@@ -324,22 +319,17 @@ body.landing-body {
 @media (max-width: 900px) {
   .la-hero { grid-template-columns: 1fr; }
   .la-hero-visual { order: -1; min-height: 280px; }
-  .cabin-model { height: 280px; }
   .car-model { height: 280px; }
   .la-run { grid-template-columns: 1fr; }
   .la-links { display: none; }
 }
 
-/* ---------- Hero 3D 车（GLB + 线框回退） ---------- */
+/* ---------- Hero 3D 车（GLB + EVA 状态回退） ---------- */
 
 .car-model {
   position: relative;
   width: 100%;
   height: clamp(340px, 46vh, 480px);
-}
-.car-model .cabin-model {
-  position: absolute;
-  inset: 0;
 }
 .car-stage {
   position: absolute;
@@ -353,4 +343,23 @@ body.landing-body {
   width: 100%;
   height: 100%;
   display: block;
+}
+
+.car-loader {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  padding-top: 4%;
+}
+
+.car-model[data-renderer="unavailable"] .car-loader {
+  background: radial-gradient(circle at center, rgba(255, 122, 61, 0.06), transparent 52%);
+}
+
+@media (max-width: 900px) {
+  /* Keep the hero glow inside the mobile viewport; negative inline insets add a subtle 2 px page overflow. */
+  .la-hero-visual::before { inset: -8% 0; }
+  .car-model { height: 280px; }
 }

@@ -1,4 +1,8 @@
-import type { ChatMsg, CockpitState } from '../core';
+import type { ChatMsg, CockpitState, EmotionId } from '../core';
+import type { EvaExpression } from '../shared/evaExpression';
+import type { DemoCue, DemoTransportState } from './autoDemo';
+
+export type { EvaExpression } from '../shared/evaExpression';
 
 /** Eva 情绪四态：驱动表情（眼睛形态 / 嘴型 / 光环色） */
 export type EvaMood = 'calm' | 'care' | 'warn' | 'urgent';
@@ -39,4 +43,44 @@ export function deriveMood(
   const fromKind = KIND_MOOD[lastEva.kind];
   if (!fromKind || MOOD_RANK[fromKind] <= MOOD_RANK[base]) return base;
   return fromKind;
+}
+
+const CUE_EXPRESSION: Partial<Record<DemoCue, EvaExpression>> = {
+  commute: 'calm',
+  'fatigue-monitoring': 'thinking',
+  'fatigue-care': 'caring',
+  'fatigue-urgent': 'urgent',
+  'fatigue-rest': 'confirming',
+  'complex-roads': 'cautious',
+  'conditions-ease': 'confirming',
+  'voice-command': 'listening',
+  completed: 'confirming',
+};
+
+const DRIVER_EXPRESSION: Record<EmotionId, EvaExpression> = {
+  neutral: 'calm',
+  happy: 'confirming',
+  sad: 'caring',
+  angry: 'cautious',
+  surprised: 'listening',
+  drowsy: 'caring',
+};
+
+/**
+ * EVA 视觉表情优先级：安全锁定 → 自动剧情 → 模式语气 → 实时驾驶员表情。
+ * cue 只传自动巡演步骤；手动场景传 null，确保 DMS 表情可以直接反馈。
+ */
+export function deriveEvaExpression(
+  cue: DemoCue | null,
+  mood: EvaMood,
+  driverEmotion: EmotionId,
+  transport: DemoTransportState,
+): EvaExpression {
+  if (mood === 'urgent' || cue === 'fatigue-urgent') return 'urgent';
+  const fromCue = cue ? CUE_EXPRESSION[cue] : undefined;
+  if (fromCue) return fromCue;
+  if (transport === 'completed') return 'confirming';
+  if (mood === 'warn') return 'cautious';
+  if (mood === 'care') return 'caring';
+  return DRIVER_EXPRESSION[driverEmotion] ?? 'calm';
 }

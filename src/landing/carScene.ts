@@ -26,7 +26,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
  * - 车辆模型：Sketchfab「geelyblackglb」by crivero（CC-BY，署名见 AI_USAGE.md）
  * - 模型经 gltf-transform meshopt 压缩（24MB → 5MB），解码器自 three 自带、离线可用
  * - 运行时把车身材质覆盖为白色车漆；玻璃（半透明）与车灯/屏幕（自发光）保留原材质
- * - 失败零影响：任何一步抛错由调用方捕获并回退 Canvas 线框（CabinModel）
+ * - 失败零影响：任何一步抛错由调用方捕获并保留 EVA 状态画面
  */
 
 const BRAND_ORANGE = 0xff7838;
@@ -198,7 +198,8 @@ export function mountCarScene(canvas: HTMLCanvasElement, opts: CarSceneOptions):
         Math.PI * 0.45,
         Math.atan(Math.tan(vHalf) * Math.max(camera.aspect, 0.1)),
       );
-      const distance = Math.max(radius / Math.sin(vHalf), radius / Math.sin(hHalf)) * 1.03;
+      // 比原自动取景放大约 10%；仍以较窄视野为准，避免移动端裁切。
+      const distance = Math.max(radius / Math.sin(vHalf), radius / Math.sin(hHalf)) * 0.94;
       camera.position.set(
         Math.sin(azimuth) * Math.cos(elevation) * distance,
         Math.sin(elevation) * distance + radius * 0.05,

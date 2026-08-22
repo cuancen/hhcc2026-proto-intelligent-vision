@@ -1,7 +1,7 @@
 # Eva Smart Cockpit — An L2 Cabin Agent Guarded by Machine Vision
 
 > **[中文版](README.md)** | Geely Hackathon · Prototype Development Track (built from scratch within the official development window)
-> Core idea: **Machine Vision × Context Memory × Smart Cockpit** — EVA goes beyond detecting fatigue or distraction: it connects people, objects, actions and time, resolves the cause of a risk, and verifies the outcome in a vehicle digital twin.
+> Core idea: **Machine Vision × Smart Cockpit** — Cabin Perception, Human Protection: EVA unifies on-device DMS, workload fatigue and cabin/L2 responses in one explainable three-act digital-twin demonstration.
 
 ## Positioning Statement (Important)
 
@@ -16,13 +16,12 @@ Nowhere in the product (UI, scripts, docs) do we use L3/L4 autonomy claims; ever
 | Machine-vision DMS | Camera → MediaPipe Face Landmarker (478 points, on-device WASM/GPU inference, zero upload) → EAR blink rate / PERCLOS eye-closure ratio / head yaw & pitch / driver-presence |
 | Dual-channel fatigue fusion | Driving-workload fatigue (speed/road/duration) fused with vision PERCLOS by *take-the-stronger*; ≥60 gentle care / ≥85 urgent intervention + a rest-choice branch |
 | Distraction guard | Eyes-off-road ≥2s warning, ≥4s urgent alert + L2 degradation (slower target speed, longer headway); auto-recovery when attention returns |
-| Vision-context loop | Semantic object events + live or simulated DMS establish why the driver looked away, not merely that they looked away; raw camera frames never enter memory |
 | Eva persona agent | One-line cinematic narration plus natural-language controls for temperature, music, massage, navigation, rest and L2 assistance |
 | Complex-road synergy | Rain+night+congestion factor ≥2 → block entertainment, cautious mode; auto-restore when conditions ease |
-| Digital-twin stage | Full-vehicle Three.js stage with translucent body, procedural cabin/EVA, gaze ray, object hotspots, reading-light cone and story-driven camera presets |
+| Digital-twin stage | Full-vehicle Three.js stage with translucent body, procedural cabin/EVA, DMS beam, rain-night feedback and story-driven camera presets |
 | Unified instrumentation | No split dashboard: slim edge HUD rails keep EVA/driver and DMS/L2/cabin state visible; complete Perception / Reasoning / Execution evidence stays in a keyboard-accessible drawer |
-| Four experiences | One focused 60-second Vision Context Loop plus retained Commute, Fatigue Guard and Complex Roads manual scenes |
-| Landing hero | Dark red-orange design language + real-time graphite 3D car (CC-BY attributed Sketchfab model, meshopt-compressed 24 MB→5 MB) with automatic wireframe fallback |
+| Three-act experience | A 60-second auto tour through Commute, Fatigue Guard and Complex Roads; each scene also runs independently |
+| Landing hero | Graphite 3D car (CC-BY attributed Sketchfab model, meshopt-compressed 24 MB→5 MB) with a shared EVA loading/offline state |
 
 ## Quick Start
 
@@ -33,8 +32,8 @@ npm test        # 63 regression tests: core 25 + vision 13 + shell/interaction 2
 npm run build   # type-check + production build
 ```
 
-**Demo tips**: click **Watch the 60s Loop** on the landing page to enter and autoplay once the stage is ready. Direct `#/cockpit` visits remain frozen at **Start Experience**. Use **Pause / Continue / Replay Loop**, or press `Space`; `1/2/3/4` select the retained scenes, `D` restarts the story, and `L` toggles L2.
-Open **Evidence** to inspect the real camera, DMS metrics, explainable event chain, cabin actuators and full alert log. If camera access fails, **SIM** feeds the exact same metrics pipeline.
+**Demo tips**: click **Run Live Demo** on the landing page to enter and autoplay once the stage is ready. Direct `#/cockpit` visits remain frozen at **Start Experience**. Use **Pause / Continue / Replay Tour**, or press `Space`; `1/2/3` select the three scenes, `D` restarts the tour, and `L` toggles L2.
+Open **Evidence** to inspect the real camera, DMS metrics, fatigue fusion, road-context reasoning, cabin actuators and full alert log. If camera access fails, **SIM** feeds the exact same metrics pipeline.
 
 ## Architecture
 
@@ -49,19 +48,19 @@ src/
 │   ├── dms.ts        MediaPipe engine: multi-source fallback (local WASM → jsDelivr → unpkg; GPU → CPU)
 │   └── simVision.ts  simulated signal fallback (shares the same metrics pipeline)
 ├── shell/     Cinematic UI (React 18 + TS)
-│   ├── twin/   Three.js digital twin + pure frame derivation + 2D safe stage
+│   ├── twin/   Three.js digital twin + pure frame derivation + EVA status fallback
 │   ├── hooks/  pausable cockpit clock / DMS / English TTS / UI preferences
 │   └── components/  header / edge HUD rails / narration / story rail / evidence drawer / movie controls
-└── landing/   Brand homepage (three.js 3D car hero + hand-written Canvas wireframe fallback)
+└── landing/   Brand homepage (three.js 3D car hero + shared EVA loading/offline state)
 ```
 
-Stability by design: the simulation clock advances only while transport is `running`; ready, paused and completed states freeze route and time. The vision model & WASM runtime are self-hosted with multi-source fallback, camera failure degrades to the simulated signal, and WebGL/model failure immediately falls back to a complete 2D stage. Three.js is dynamically imported. Full parameter table and data flow live in `docs/PIPELINE.md`; a deeper architecture guide is in [`PROJECT_GUIDE.md`](PROJECT_GUIDE.md) / [`PROJECT_GUIDE_EN.md`](PROJECT_GUIDE_EN.md).
+Stability by design: the simulation clock advances only while transport is `running`; ready, paused and completed states freeze route and time. The vision model & WASM runtime are self-hosted with multi-source fallback, camera failure degrades to the simulated signal, and WebGL/model failure keeps the cockpit operational behind an EVA status view. Three.js is dynamically imported. Full parameter table and data flow live in `docs/PIPELINE.md`; a deeper architecture guide is in [`PROJECT_GUIDE.md`](PROJECT_GUIDE.md) / [`PROJECT_GUIDE_EN.md`](PROJECT_GUIDE_EN.md).
 
 ## Judging-criteria mapping
 
 | Criterion | Where this project lands |
 |---|---|
-| Interaction & UX | Full-screen vehicle digital twin + 10 story-driven shots + pause/continue/replay + compact edge instrumentation + hidden evidence drawer |
+| Interaction & UX | Full-screen vehicle digital twin + 9-shot three-act tour + pause/continue/replay + compact edge instrumentation + hidden evidence drawer |
 | Accessibility | 4-step font scaling (persisted) / high-contrast mode / full keyboard operation / aria-live graded announcements / prefers-reduced-motion / skip links |
 | Solid core | Zero-DOM kernel + 63 regression tests + pausable single timeline + single-source params + vision/WebGL fallbacks |
 | Versatility | 3 demo scenes × 3 sim speeds × camera/simulated vision sources × responsive layout (desktop/tablet/phone) |

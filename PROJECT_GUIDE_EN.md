@@ -26,7 +26,7 @@
 | React 18 + Vite 5 + TS strict | Mainstream, fast, types-as-documentation |
 | **No** router / state / UI-component libraries | Hash routing is 15 lines; all state is one `useCockpit` hook; hand-rolled CSS won on visual consistency (and judges like "built from scratch") |
 | MediaPipe Tasks Vision (Apache-2.0) | 478-point facial landmarks in-browser, WASM/GPU on-device, frames never uploaded |
-| three.js (MIT, dynamic import) | Landing hero and cockpit digital twin; model failure leaves a fully functional 2D safe stage |
+| three.js (MIT, dynamic import) | Landing hero and cockpit digital twin; model failure leaves the cockpit functional behind an EVA status view |
 | vitest | Kernel & vision are pure functions, so tests are instant |
 
 **Positioning red line** (applies to all wording): L2 assistance only — the driver stays responsible; never L3/L4 language.
@@ -38,12 +38,12 @@
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  landing/   Brand homepage (independent; deletable)          │
-│    CarModel → carScene(three.js) ⇄ fallback CabinModel       │
+│    CarModel → carScene(three.js) ⇄ EVA loading/offline state │
 ├─────────────────────────────────────────────────────────────┤
 │  shell/     UI shell                                         │
 │    hooks: useCockpit(kernel subscription) useDms(vision      │
 │           lifecycle) useTts(local speech) useUiPrefs         │
-│    twin: vehicle scene + cue-derived frames + 2D fallback    │
+│    twin: vehicle scene + cue-derived frames + EVA fallback   │
 │    components: edge HUD rails + narration + evidence drawer │
 │                story rail + cinematic transport controls    │
 ├────────────── rAF reads liveState() directly ───────────────┤
@@ -93,22 +93,21 @@ src/
 │  │  ├─ useDms.ts               Vision lifecycle: model/sim/off, auto-degrades on failure
 │  │  ├─ useTts.ts               speechSynthesis (en-US), silently skipped when unavailable
 │  │  └─ useUiPrefs.ts           Font scale / contrast / voice, persisted in localStorage
-│  ├─ autoDemo.ts                Pausable 60s timeline: 10 stable DemoCue values + transport API
+│  ├─ autoDemo.ts                Pausable 60s timeline: 9 stable DemoCue values + transport API
 │  ├─ simulationClock.ts         Advances kernel only in running state
 │  ├─ ambient.ts                 Urgency → 3 ambient levels (teal/amber/red)
 │  ├─ evaFace.ts / evaAvatar.ts  Mood derivation / bust wireframe geometry (pure functions)
-│  ├─ twin/                      Three.js vehicle scene + deriveTwinFrame + 2D safe stage
+│  ├─ twin/                      Three.js vehicle scene + deriveTwinFrame + EVA status fallback
 │  ├─ theme.css                  Automotive cinematic design system + responsive drawer
 │  └─ components/                CockpitHeader/SystemsRail/EvaNarration/StoryRail/
 │                                CinemaControls/EvidenceDrawer/EntryTransition
 ├─ landing/
 │  ├─ Landing.tsx                Page skeleton (Hero/Features/Demo/Run/About/footer credit)
-│  ├─ CarModel.tsx               3D car React wrapper: dynamic import + wireframe fallback + fade
+│  ├─ CarModel.tsx               3D car React wrapper: dynamic import + EVA status fallback + fade
 │  ├─ carScene.ts                three.js scene: graphite-metal override (skips glass/emissive)/
 │  │                             RoomEnvironment / brand-orange rim light / soft ground shadow /
 │  │                             dual-axis auto-framing / hover-spin / full disposal
-│  ├─ CabinModel.tsx             Hand-written Canvas pseudo-3D wireframe (fallback, zero deps)
-│  ├─ projection.ts              Perspective/rotation/brand-gradient pure functions
+│  ├─ ../shared/EvaLoadingAvatar Shared landing/entry/cockpit loading and offline state
 │  └─ landing.css                Landing styles (red-orange language + .car-stage transition)
 tests/                          core(25) + vision(13) + shell/interaction(25) = 63 tests
 public/models/                  face_landmarker.task (self-hosted) + geely.glb (meshopt, 5 MB)
@@ -158,15 +157,15 @@ simulated signal  ─┘ (identical metrics pipeline as the real model)
 | GPU delegate fails | auto-retry on CPU | `tryCreate('GPU') catch → CPU` |
 | Camera denied | auto-switch to simulated signal, no error | `useDms.startModel catch` |
 | No speech packs | TTS silently skipped (prevents renderer hang) | `useTts` |
-| 3D car fails | wireframe fallback stays forever | `CarModel.tsx catch` |
+| 3D car fails | EVA offline state remains while controls stay available | `CarModel.tsx / TwinStage.tsx catch` |
 | Simulated signal | same metrics pipeline as the real model | `simVision.ts` |
 
 `firstOk(sources, open, label)` — that tiny try-in-order function is the whole philosophy in miniature. Wire every new external resource this way.
 
 ### 4.5 Auto demo & page relay (autoDemo.ts + App.tsx)
 
-- The script = `DEMO_STEPS` (sec + judge-facing title/note) + a setTimeout sequence in `runAutoDemo`, at 2× speed;
-- Landing "Run Live Demo" → `sessionStorage['eva.autodemo']='1'` → hash to cockpit → BootSplash ends → flag consumed → demo starts;
+- The script = nine `DEMO_STEPS` (sec + stable cue + judge-facing title/note) driven by one pausable scheduler at 0.15× simulation speed;
+- Landing "Run Live Demo" → `sessionStorage['eva.autodemo']='1'` → hash to cockpit → the non-blocking EVA entry state ends → flag consumed → demo starts;
 - Stopping does **not** clean the scene — judges can keep playing with the current state. Deliberate pitch detail.
 
 ### 4.6 Landing 3D car (landing/carScene.ts)
@@ -180,7 +179,7 @@ simulated signal  ─┘ (identical metrics pipeline as the real model)
 
 ## 5. Reuse guide (what you can lift as-is)
 
-> Principle: the further down, the more independent. core has no React; metrics has no core; projection/evaAvatar have nothing.
+> Principle: the further down, the more independent. core has no React; metrics has no core; evaAvatar has no dependencies.
 
 | Want to reuse | Take | Dependencies | Portable? |
 |---|---|---|---|
@@ -189,7 +188,7 @@ simulated signal  ─┘ (identical metrics pipeline as the real model)
 | **MediaPipe fallback engine** | `src/vision/dms.ts` | `@mediapipe/tasks-vision` (dynamic) + metrics | ✅ emits VisionSample via callback, UI-agnostic |
 | **Simulated signal source** | `src/vision/simVision.ts` | metrics + a `getState()` | ✅ any "need a fake sensor" scenario |
 | **3D product pedestal** | `carScene.ts + CarModel.tsx` | three; change `modelUrl` to swap the model | ✅ delete the paint override → generic turntable |
-| **Pseudo-3D wireframe rendering** | `landing/projection.ts + CabinModel.tsx` | none | ✅ pure projection math + Canvas |
+| **EVA loading/offline state** | `shared/EvaLoadingAvatar.tsx` | React + CSS | ✅ shared by landing, entry and cockpit |
 | **Dual-channel state pattern** | the `useCockpit.ts` recipe | React | pattern ports: snapshot for the framework, live ref for Canvas |
 | **Multi-source fallback pattern** | `firstOk()` | none | ✅ for every external resource |
 | **Scripted auto-demo pattern** | `autoDemo.ts` recipe | none | ✅ steps table + timers + stop-without-cleanup |

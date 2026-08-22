@@ -1,7 +1,7 @@
 # PIPELINE —— 参数表 / 数据流 / 演示剧本
 
 > 参数唯一出处为 `src/core/params.ts` 与 `src/vision/metrics.ts`。修改任何阈值必须：
-> ① `npm test` 回归全绿 ② 同步本表 ③ 手动过一遍 60 秒主闭环与三个保留场景。
+> ① `npm test` 回归全绿 ② 同步本表 ③ 手动过一遍 60 秒三幕巡演与三个独立场景。
 
 ## 一、内核参数表（src/core/params.ts）
 
@@ -49,26 +49,25 @@
                      座舱调节 / 分级告警 / L2 降级恢复 / EVA 单句播报
                                       │ CockpitState + DemoCue + mood
                                       ▼
-                     deriveTwinFrame ──▶ 三维镜头/透明度/热点/视线/阅读灯
+                     deriveTwinFrame ──▶ 三维镜头/透明度/DMS 光束/雨夜反馈/EVA 姿态
                                       └─▶ 边缘 HUD + 技术证据抽屉 + aria-live
 ```
 
 采样节流：真实模型每帧推理、≥100ms 向内核发样；模拟信号 10Hz。内核时钟 100ms 一拍，但只在 `running` 时执行 `step(dt=0.2×速率)`；ready / paused / completed 均冻结时间和路线。
 
-## 四、自动演示剧本（src/shell/autoDemo.ts，60 秒单时间轴）
+## 四、自动演示剧本（src/shell/autoDemo.ts，60 秒可暂停单时间轴）
 
 | 实秒 | 动作 | 预期 |
 |---|---|---|
-| 0.5 | `boundary` | 整车广角；明确真实 DMS / 模拟物品事件边界 |
-| 4 | `observe-cabin` | 停车卡、电脑包、水杯成为语义记忆，不保存画面 |
-| 9 | `observe-phone` | 手机位置更新到无线充电板，体现时间维度 |
-| 16 | `search-intent` | 驾驶员开始寻找停车卡，镜头推进主驾 |
-| 19 | `gaze-away` | DMS 视线射线持续指向左下 |
-| 22 | `cause-linked` | 视线与停车卡热点建立橙色原因关联 |
-| 25 | `assistance` | EVA 告知位置并打开主驾阅读灯光锥 |
-| 30 | `verified` | 视线回正，关联转为青色确认，阅读灯关闭 |
-| 46 | `exit-filter` | 电脑包与手机点亮，普通水杯保持静默 |
-| 57 | `completed` | 镜头拉回整车，四阶段完成并冻结现场 |
+| 0.5 | `commute` | Scene 1：整车广角，欢迎、座舱偏好与常用路线 |
+| 9 | `fatigue-monitoring` | Scene 2：高速 + L2，推进驾驶员与端侧 DMS |
+| 13 | `fatigue-care` | 注入疲劳 62，橙色轻度关怀与座舱调节 |
+| 19 | `fatigue-urgent` | 注入疲劳 88，红色紧急干预与休息选择 |
+| 23 | `fatigue-rest` | 选择立即休息，青色恢复反馈 |
+| 30 | `complex-roads` | Scene 3：雨、夜、拥堵与前车制动协同反馈 |
+| 46 | `conditions-ease` | 回到通勤，服务和座舱状态恢复 |
+| 52 | `voice-command` | 导航自然语言指令，中控镜头 |
+| 58 | `completed` | 镜头拉回整车，三幕完成并在 60 秒冻结 |
 
 时间轴 API：`pause()` / `resume()` / `restart()` / `stop()`；模型解码或标签页恢复造成的长阻塞不会让多个 cue 同帧跳过。
 
@@ -77,5 +76,5 @@
 ```bash
 npm test          # 63 项：内核 25 + 视觉 13 + shell/交互 25
 npm run build     # tsc --noEmit + vite build
-npm run dev       # 手动：10 镜头闭环 + 三个保留场景 + 摄像头/模拟 + 证据抽屉 + WebGL 降级
+npm run dev       # 手动：9 镜头三幕巡演 + 三个独立场景 + 摄像头/模拟 + 证据抽屉 + EVA 降级
 ```

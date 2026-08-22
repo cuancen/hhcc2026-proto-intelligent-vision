@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import CarModel from './CarModel';
 import './landing.css';
 
-/** Landing → Digital Twin handoff (hash route, no routing dependency). */
+/** Landing → cockpit handoff (hash route, no routing dependency). */
 function enterCockpit(autoDemo: boolean) {
   if (autoDemo) {
     try { window.sessionStorage.setItem('eva.autodemo', '1'); } catch { /* 隐私模式 */ }
@@ -12,29 +12,29 @@ function enterCockpit(autoDemo: boolean) {
 
 const FEATURES = [
   {
-    idx: '01 · SEE',
-    title: 'Two-channel perception',
-    desc: 'Live on-device DMS understands blinks, PERCLOS and head pose. Object locations enter as transparently labeled simulated vision events.',
-    tags: ['On-device DMS', 'Simulated object events', 'No frame upload'],
+    idx: '01 · VISION',
+    title: 'Machine-Vision DMS',
+    desc: 'MediaPipe 478-point facial landmarks, inferred locally in the browser: blink EAR, PERCLOS eye-closure ratio, head pose and driver presence — zero upload throughout.',
+    tags: ['478 landmarks', 'On-device WASM/GPU', 'Multi-source fallback'],
   },
   {
-    idx: '02 · UNDERSTAND',
-    title: 'Dynamic context memory',
-    desc: 'EVA keeps explainable semantic events — whose object, where it was, and what happened next — then links gaze deviation to intent, not to stored video.',
-    tags: ['Event memory', 'Cause linking', 'Semantics, not video'],
+    idx: '02 · FUSION',
+    title: 'Dual-Channel Fatigue Fusion',
+    desc: 'Driving-workload fatigue and vision PERCLOS are fused by taking the stronger signal. A score of 60 triggers gentle care; 85 triggers urgent intervention with a rest choice.',
+    tags: ['Dual threshold 60/85', 'Cooldown gates', 'Driver choice'],
   },
   {
-    idx: '03 · CLOSE LOOP',
-    title: 'Action and visual verification',
-    desc: 'EVA gives the parking-card location and lights the right area. DMS then verifies eyes are back on road; L2 still degrades beyond the safety boundary.',
-    tags: ['Precise assistance', 'Outcome verification', 'L2 safety boundary'],
+    idx: '03 · SYNERGY',
+    title: 'Cabin-Drive Synergy',
+    desc: 'Rainy-night congestion automatically blocks entertainment and switches to cautious mode. Sustained distraction degrades L2 speed and headway.',
+    tags: ['L2 degrade / recover', 'Entertainment block', 'Context restore'],
   },
 ];
 
 const STATS = [
-  { b: '4', span: 'See / Understand / Act / Verify' },
-  { b: '0', span: 'Raw frames stored in memory' },
-  { b: '1', span: 'Focused 60-second story' },
+  { b: '478', span: 'Facial landmarks · on-device' },
+  { b: '0', span: 'Frames uploaded · privacy first' },
+  { b: '3', span: 'Demo scenes · 60 s auto tour' },
   { b: '63', span: 'Core, vision and interaction tests' },
 ];
 
@@ -43,12 +43,12 @@ const STATS = [
  * 视觉风格（深色底 + 红橙渐变光晕 + 悬浮 3D + 极简导航）；
  * 组件、样式与渲染逻辑由本团队从零手写。Hero 3D 车模型为 Sketchfab
  * CC-BY 第三方资源（作者 crivero，已署名，见页脚与 AI_USAGE.md），
- * 加载失败自动回退手写 Canvas 线框。
+ * 加载和异常状态由 EVA 头像承接，不再展示旧线框汽车。
  */
 export default function Landing() {
   useEffect(() => {
     document.body.classList.add('landing-body');
-    document.title = 'EVA Vision Loop — See the cause. Close the loop.';
+    document.title = 'EVA · Smart Cockpit — Cabin Perception, Human Protection';
     return () => {
       document.body.classList.remove('landing-body');
       document.title = 'EVA · Smart Cockpit';
@@ -69,27 +69,28 @@ export default function Landing() {
           <a href="#about">About</a>
         </div>
         <button type="button" className="la-btn primary small" onClick={() => enterCockpit(false)}>
-          Enter Digital Twin
+          Dashboard →
         </button>
       </nav>
 
       <header className="la-hero">
         <div>
-          <span className="la-kicker"><i aria-hidden="true" />EVA VISION LOOP · PROTOTYPE TRACK</span>
+          <span className="la-kicker"><i aria-hidden="true" />GEELY HACKATHON · PROTOTYPE TRACK</span>
           <h1 className="la-title">
-            <em>See the cause.</em><br />
-            Close the loop.
+            <em>Cabin Perception,</em><br />
+            Human Protection.
           </h1>
           <p className="la-slogan">
-            A vision-context cockpit agent that goes beyond fatigue and distraction detection.
-            It understands how people, objects, actions and time relate — then resolves the cause and verifies the outcome.
+            An L2 cabin agent guarded by machine vision — a cockpit that can actually see the driver:
+            blinks, gaze and fatigue understood in real time, care and intervention unfolding in graded
+            levels, while driving responsibility always stays with the human.
           </p>
           <div className="la-cta">
             <button type="button" className="la-btn primary" onClick={() => enterCockpit(true)}>
-              Watch the 60s Loop
+              Run Live Demo
             </button>
             <button type="button" className="la-btn ghost" onClick={() => enterCockpit(false)}>
-              Enter Digital Twin
+              Enter Dashboard
             </button>
           </div>
         </div>
@@ -100,8 +101,8 @@ export default function Landing() {
 
       <section className="la-section" id="features" aria-labelledby="la-features">
         <div className="la-section-head">
-          <h2 id="la-features">Detection is not the destination</h2>
-          <p>See → Understand → Act → Verify. One explainable flow that closes a real-world loop.</p>
+          <h2 id="la-features">One kernel, three layers of protection</h2>
+          <p>Perception → decision → cabin and drive control. One data stream runs through every feature.</p>
         </div>
         <div className="la-cards">
           {FEATURES.map((f) => (
@@ -117,33 +118,33 @@ export default function Landing() {
 
       <section className="la-section" id="demo" aria-labelledby="la-demo">
         <div className="la-section-head">
-          <h2 id="la-demo">One 60-second loop</h2>
-          <p>One focused question: why did the driver look away, and how does EVA resolve the actual cause?</p>
+          <h2 id="la-demo">A three-act demo script</h2>
+          <p>Three scenes in an automatic tour of about 60 seconds, narrated step by step. Pause anytime and explore by hand.</p>
         </div>
         <div className="la-run">
           <div>
-            <h3>From “pay attention” to “you do not need to search”</h3>
+            <h3>From ambient intelligence to urgent intervention</h3>
             <p>
-              EVA remembers the parking card. When the driver looks for it, DMS detects the attention risk,
-              the context engine links the cause, gives the location, lights the area and verifies eyes are back on road.
-              At exit, only important items such as the laptop bag and phone trigger a reminder.
+              Face-ID greeting and invisible cabin setup on a daily commute. Graded dual-threshold intervention
+              and a rest branch protect the driver during fatigue. Cabin-drive coordination adapts to complex roads,
+              then restores normal services as conditions ease.
             </p>
             <div className="scenarios">
-              <i>See the event</i>
-              <i>Understand the cause</i>
-              <i>Verify the outcome</i>
+              <i>City Commute</i>
+              <i>Fatigue Guard</i>
+              <i>Complex Roads</i>
             </div>
           </div>
           <button type="button" className="la-btn primary" onClick={() => enterCockpit(true)}>
-            Start the Story
+            Watch Auto Demo
           </button>
         </div>
       </section>
 
       <section className="la-section" id="run" aria-labelledby="la-run">
         <div className="la-section-head">
-          <h2 id="la-run">Trust starts with clear boundaries</h2>
-          <p>Live DMS and simulated object events are separated visibly; a zero-DOM core keeps every step testable and explainable.</p>
+          <h2 id="la-run">Let the numbers talk</h2>
+          <p>Zero-DOM kernel · single source of parameters · simulated-signal fallback — the demo never breaks.</p>
         </div>
         <div className="la-stats">
           {STATS.map((s) => (
@@ -155,7 +156,7 @@ export default function Landing() {
       <section className="la-section" id="about" aria-labelledby="la-about">
         <div className="la-section-head">
           <h2 id="la-about">About EVA</h2>
-          <p>L2 combined assistance · Semantic memory · Local first · No runtime service dependency</p>
+          <p>L2 combined assistance · Local first · No external service dependency</p>
         </div>
         <div className="la-about">
           <p>
@@ -164,7 +165,6 @@ export default function Landing() {
           </p>
           <ul>
             <li>Camera frames are processed only in this browser and are never collected or uploaded.</li>
-            <li>Object locations use transparently labeled simulated vision events; the prototype does not claim general object recognition or ownership inference.</li>
             <li>The vision model and WASM runtime are self-hosted, with multi-source recovery and a simulated-signal fallback.</li>
             <li>Frontend components, styling and rendering were built by the team. The landing-page car is a credited CC-BY third-party asset; see AI_USAGE.md.</li>
           </ul>
@@ -172,7 +172,7 @@ export default function Landing() {
       </section>
 
       <footer className="la-footer">
-        EVA Vision Loop · Smart Cockpit — Geely Hackathon Prototype Track · Built from scratch during the official development window<br />
+        EVA · Smart Cockpit — Geely Hackathon Prototype Track · Built from scratch during the official development window<br />
         Driver Monitoring runs fully on-device. L2 is assistance, not autonomy — the driver stays in charge.<br />
         Hero car model: “geelyblackglb” by{' '}
         <a href="https://sketchfab.com/3d-models/geelyblackglb-602e7f7cab6d435ab3c022ecaadceb56" target="_blank" rel="noreferrer noopener">crivero</a>{' '}

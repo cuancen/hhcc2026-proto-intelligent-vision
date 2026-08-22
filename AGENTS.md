@@ -7,8 +7,8 @@
 ```
 src/core/     内核：sim 仿真 / evaRules 规则引擎 / params 参数唯一出处（零 DOM）
 src/vision/   机器视觉：metrics 纯函数 / dms MediaPipe 引擎 / simVision 模拟回退
-src/shell/    UI：电影控制、证据抽屉、可暂停时间轴；twin/ 为 Three.js 整车数字孪生与二维回退
-src/landing/  品牌首页：three.js 3D 车 Hero（CC-BY，署名见 AI_USAGE.md）+ Canvas 线框回退；独立于座舱业务
+src/shell/    UI：电影控制、证据抽屉、可暂停三幕时间轴；twin/ 为 Three.js 整车数字孪生与 EVA 状态回退
+src/landing/  品牌首页：three.js 3D 车 Hero（CC-BY，署名见 AI_USAGE.md）+ EVA 加载/离线状态；独立于座舱业务
 tests/        vitest：core 25 项 + vision 13 项 + shell/交互 25 项（共 63 项）
 public/       自托管模型 models/face_landmarker.task + models/geely.glb（meshopt 压缩）；mediapipe-wasm/ 由 postinstall 生成（不入库）
 docs/PIPELINE.md  参数表/数据流/演示剧本（改参数必须同步）

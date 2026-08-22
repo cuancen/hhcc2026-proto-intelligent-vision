@@ -2,8 +2,10 @@ import type { ScenarioId } from '../../core';
 import type { DemoTransportState } from '../autoDemo';
 import CinemaIcon from './CinemaIcon';
 
-const SCENARIO_OPTIONS: Array<{ id: ScenarioId; label: string }> = [
-  { id: 'visionLoop', label: '60s Vision Context Loop' },
+export type ExperienceId = 'auto-tour' | ScenarioId;
+
+const SCENARIO_OPTIONS: Array<{ id: ExperienceId; label: string }> = [
+  { id: 'auto-tour', label: '60s Three-Act Tour' },
   { id: 'commute', label: 'Daily Commute' },
   { id: 'fatigue', label: 'Fatigue Guard' },
   { id: 'complex', label: 'Complex Roads' },
@@ -13,21 +15,21 @@ const PRIMARY_LABEL: Record<DemoTransportState, string> = {
   ready: 'Start Experience',
   running: 'Pause',
   paused: 'Continue',
-  completed: 'Replay Loop',
+  completed: 'Replay Tour',
 };
 
 export default function CinemaControls({
   transport,
-  scenario,
+  experience,
   onPrimary,
   onRestart,
-  onScenario,
+  onExperience,
 }: {
   transport: DemoTransportState;
-  scenario: ScenarioId;
+  experience: ExperienceId;
   onPrimary: () => void;
   onRestart: () => void;
-  onScenario: (id: ScenarioId) => void;
+  onExperience: (id: ExperienceId) => void;
 }) {
   const primaryIcon = transport === 'running' ? 'pause' : transport === 'completed' ? 'replay' : 'play';
 
@@ -41,8 +43,8 @@ export default function CinemaControls({
         <CinemaIcon name="replay" />
       </button>
       <label className="scenario-select">
-        <span>SCENE</span>
-        <select value={scenario} onChange={(event) => onScenario(event.target.value as ScenarioId)}>
+        <span>EXPERIENCE</span>
+        <select value={experience} onChange={(event) => onExperience(event.target.value as ExperienceId)}>
           {SCENARIO_OPTIONS.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
         </select>
       </label>

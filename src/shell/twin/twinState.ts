@@ -1,27 +1,23 @@
-import type { CabinObjectId, CockpitState } from '../../core';
+import type { CockpitState } from '../../core';
 import type { DemoCue } from '../autoDemo';
 import type { EvaMood } from '../evaFace';
 
-export type TwinCameraPreset = 'hero' | 'cabin' | 'console' | 'driver' | 'gaze' | 'cause' | 'assist' | 'verify' | 'exit';
+export type TwinCameraPreset = 'rearChase' | 'rainChase' | 'rearWide' | 'cabin' | 'console' | 'driver' | 'gaze' | 'cause' | 'assist' | 'verify';
 export type TwinAccent = 'neutral' | 'cause' | 'verify' | 'danger';
-export type TwinGaze = 'off' | 'away' | 'cause' | 'forward';
-export type TwinEvaPose = 'idle' | 'listen' | 'think' | 'act' | 'confirm' | 'alert';
-
-export interface TwinHotspot {
-  id: CabinObjectId;
-  label: string;
-  location: string;
-  emphasis: 'normal' | 'target' | 'important' | 'verified';
-}
+export type TwinGaze = 'off' | 'monitor' | 'warning' | 'urgent';
+export type TwinEffect = 'commute' | 'monitoring' | 'care' | 'urgent' | 'rest' | 'weather' | 'recovery' | 'voice' | 'complete';
+export type TwinEnvironment = 'city' | 'highway' | 'rain-night' | 'cabin';
 
 export interface TwinFrame {
   camera: TwinCameraPreset;
   bodyOpacity: number;
   accent: TwinAccent;
   gaze: TwinGaze;
-  readingLight: boolean;
-  evaPose: TwinEvaPose;
-  hotspots: TwinHotspot[];
+  effect: TwinEffect;
+  environment: TwinEnvironment;
+  motionIntensity: number;
+  wheelMotion: boolean;
+  braking: boolean;
 }
 
 export interface ModelFit {
@@ -43,84 +39,105 @@ export function fitModelBounds(
 }
 
 const CAMERA_BY_CUE: Record<DemoCue, TwinCameraPreset> = {
-  boundary: 'hero',
-  'observe-cabin': 'cabin',
-  'observe-phone': 'console',
-  'search-intent': 'driver',
-  'gaze-away': 'gaze',
-  'cause-linked': 'cause',
-  assistance: 'assist',
-  verified: 'verify',
-  'exit-filter': 'exit',
-  completed: 'hero',
+  commute: 'rearChase',
+  'fatigue-monitoring': 'rearChase',
+  'fatigue-care': 'gaze',
+  'fatigue-urgent': 'cause',
+  'fatigue-rest': 'cabin',
+  'complex-roads': 'rainChase',
+  'conditions-ease': 'rearWide',
+  'voice-command': 'console',
+  completed: 'rearWide',
 };
 
 const OPACITY_BY_CUE: Record<DemoCue, number> = {
-  boundary: 1,
-  'observe-cabin': 0.3,
-  'observe-phone': 0.28,
-  'search-intent': 0.32,
-  'gaze-away': 0.26,
-  'cause-linked': 0.2,
-  assistance: 0.18,
-  verified: 0.36,
-  'exit-filter': 0.26,
+  commute: 1,
+  'fatigue-monitoring': 1,
+  'fatigue-care': 0.28,
+  'fatigue-urgent': 0.2,
+  'fatigue-rest': 0.38,
+  'complex-roads': 1,
+  'conditions-ease': 1,
+  'voice-command': 0.34,
   completed: 1,
 };
 
-function poseOf(cue: DemoCue | null, mood: EvaMood): TwinEvaPose {
-  if (cue === 'cause-linked') return 'think';
-  if (cue === 'assistance') return 'act';
-  if (cue === 'verified' || cue === 'completed') return 'confirm';
-  if (mood === 'urgent') return 'alert';
-  if (cue && cue !== 'boundary') return 'listen';
-  return 'idle';
-}
+const EFFECT_BY_CUE: Record<DemoCue, TwinEffect> = {
+  commute: 'commute',
+  'fatigue-monitoring': 'monitoring',
+  'fatigue-care': 'care',
+  'fatigue-urgent': 'urgent',
+  'fatigue-rest': 'rest',
+  'complex-roads': 'weather',
+  'conditions-ease': 'recovery',
+  'voice-command': 'voice',
+  completed: 'complete',
+};
 
-/** 将领域状态与稳定剧情提示压缩为 Three.js 可消费的一帧描述。 */
+const ENVIRONMENT_BY_CUE: Record<DemoCue, TwinEnvironment> = {
+  commute: 'city',
+  'fatigue-monitoring': 'highway',
+  'fatigue-care': 'highway',
+  'fatigue-urgent': 'highway',
+  'fatigue-rest': 'cabin',
+  'complex-roads': 'rain-night',
+  'conditions-ease': 'highway',
+  'voice-command': 'cabin',
+  completed: 'highway',
+};
+
+const MOTION_BY_CUE: Record<DemoCue, number> = {
+  commute: 0.82,
+  'fatigue-monitoring': 1,
+  'fatigue-care': 0.42,
+  'fatigue-urgent': 0.28,
+  'fatigue-rest': 0.08,
+  'complex-roads': 0.9,
+  'conditions-ease': 0.62,
+  'voice-command': 0.16,
+  completed: 0,
+};
+
+/** 将三幕提示与领域状态压缩为 Three.js 可消费的一帧描述。 */
 export function deriveTwinFrame(state: CockpitState, cue: DemoCue | null, mood: EvaMood): TwinFrame {
-  const effectiveCue = cue ?? 'boundary';
-  const targetId = state.context.targetId;
-  const exit = effectiveCue === 'exit-filter';
-  const verified = effectiveCue === 'verified' || effectiveCue === 'completed';
-  const hotspots = state.context.memory
-    .filter((item) => item.present)
-    .map<TwinHotspot>((item) => ({
-      id: item.id,
-      label: item.label,
-      location: item.location,
-      emphasis: verified && item.id === targetId
-        ? 'verified'
-        : exit && item.importance === 'important'
-          ? 'important'
-          : item.id === targetId || (['cause-linked', 'assistance'].includes(effectiveCue) && item.id === 'parking-card')
-            ? 'target'
-            : 'normal',
-    }));
+  const effectiveCue = cue ?? (state.scenario === 'complex'
+    ? 'complex-roads'
+    : state.scenario === 'fatigue'
+      ? 'fatigue-monitoring'
+      : 'commute');
+  const accent: TwinAccent = effectiveCue === 'fatigue-urgent'
+    ? 'danger'
+    : effectiveCue === 'complex-roads'
+      ? (state.drive.leadBrake ? 'danger' : 'cause')
+      : effectiveCue === 'fatigue-care'
+        ? 'cause'
+        : ['commute', 'fatigue-rest', 'conditions-ease', 'completed'].includes(effectiveCue)
+          ? 'verify'
+          : mood === 'urgent'
+            ? 'danger'
+            : 'neutral';
 
-  const accent: TwinAccent = verified
-    ? 'verify'
-    : ['cause-linked', 'assistance'].includes(effectiveCue)
-      ? 'cause'
-      : mood === 'urgent'
-        ? 'danger'
-        : 'neutral';
-
-  const gaze: TwinGaze = ['search-intent', 'gaze-away'].includes(effectiveCue)
-    ? 'away'
-    : effectiveCue === 'cause-linked' || effectiveCue === 'assistance'
-      ? 'cause'
-      : verified
-        ? 'forward'
+  const gaze: TwinGaze = effectiveCue === 'fatigue-monitoring'
+    ? 'monitor'
+    : effectiveCue === 'fatigue-care'
+      ? 'warning'
+      : effectiveCue === 'fatigue-urgent'
+        ? 'urgent'
         : 'off';
 
+  const speedFactor = Math.min(1, Math.max(0, state.drive.speed / 105));
+  const motionIntensity = Math.round(speedFactor * MOTION_BY_CUE[effectiveCue] * 1000) / 1000;
+  const camera = CAMERA_BY_CUE[effectiveCue];
+
   return {
-    camera: CAMERA_BY_CUE[effectiveCue],
+    camera,
     bodyOpacity: OPACITY_BY_CUE[effectiveCue],
     accent,
     gaze,
-    readingLight: effectiveCue === 'assistance' || (cue === null && state.cabin.readingLight !== 'Off'),
-    evaPose: poseOf(cue, mood),
-    hotspots,
+    effect: EFFECT_BY_CUE[effectiveCue],
+    environment: ENVIRONMENT_BY_CUE[effectiveCue],
+    motionIntensity,
+    wheelMotion: ['rearChase', 'rainChase', 'rearWide'].includes(camera) && state.drive.speed > 1,
+    braking: effectiveCue === 'complex-roads' && state.drive.leadBrake,
   };
 }

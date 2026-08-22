@@ -4,10 +4,9 @@ import { BOOT_SEQUENCE } from '../src/shell/components/BootSplash';
 import { ENTRY_MAX_MS } from '../src/shell/components/EntryTransition';
 import { deriveMood, MOOD_FRESH_MIN } from '../src/shell/evaFace';
 import { ambientLevelOf, URGENT_FRESH_MIN } from '../src/shell/ambient';
-import { brandColor, buildCabin, project, rotY } from '../src/landing/projection';
 import { buildBust, eyeShapeOf, MOOD_COLOR } from '../src/shell/evaAvatar';
 import { createState } from '../src/core/sim';
-import { createCockpit } from '../src/core';
+import { createCockpit, SCENARIOS } from '../src/core';
 import { createSimulationClock } from '../src/shell/simulationClock';
 import { deriveTwinFrame, fitModelBounds } from '../src/shell/twin/twinState';
 
@@ -44,30 +43,47 @@ describe('自动演示剧本（路演讲解）', () => {
     }
   });
 
-  it('covers See, Understand, Act, and Verify while disclosing simulated inputs', () => {
+  it('覆盖通勤、疲劳与复杂路况三幕，并保留驾驶员责任边界', () => {
     const all = DEMO_STEPS.map((s) => `${s.title}\n${s.note}`).join('\n');
-    expect(all).toContain('See');
-    expect(all).toContain('Understand');
-    expect(all).toContain('Act');
-    expect(all).toContain('Verify');
-    expect(all).toContain('simulated vision events');
+    expect(all).toContain('City Commute');
+    expect(all).toContain('Fatigue Guard');
+    expect(all).toContain('Complex Roads');
+    expect(all).toContain('driver always in charge');
+    expect(Object.keys(SCENARIOS)).toEqual(['commute', 'fatigue', 'complex']);
   });
 
-  it('十个镜头提示稳定、唯一，三维舞台不依赖步骤序号猜测', () => {
-    expect(DEMO_STEPS).toHaveLength(10);
+  it('九个镜头提示稳定、唯一，三维舞台不依赖步骤序号猜测', () => {
+    expect(DEMO_STEPS).toHaveLength(9);
     expect(DEMO_STEPS.map((step) => step.cue)).toEqual([
-      'boundary',
-      'observe-cabin',
-      'observe-phone',
-      'search-intent',
-      'gaze-away',
-      'cause-linked',
-      'assistance',
-      'verified',
-      'exit-filter',
+      'commute',
+      'fatigue-monitoring',
+      'fatigue-care',
+      'fatigue-urgent',
+      'fatigue-rest',
+      'complex-roads',
+      'conditions-ease',
+      'voice-command',
       'completed',
     ]);
-    expect(new Set(DEMO_STEPS.map((step) => step.cue)).size).toBe(10);
+    expect(new Set(DEMO_STEPS.map((step) => step.cue)).size).toBe(9);
+  });
+
+  it('九步时间严格回到 Git 三幕基线', () => {
+    expect(DEMO_STEPS.map((step) => step.sec)).toEqual([0.5, 9, 13, 19, 23, 30, 46, 52, 58]);
+  });
+
+  it('巡演使用 0.15× 仿真倍率，停止时恢复默认倍率', () => {
+    vi.useFakeTimers();
+    const api = createCockpit();
+    const speeds: number[] = [];
+    const demo = runAutoDemo({
+      act: api.actions,
+      ensureSimVision: () => undefined,
+      setSpeed: (speed) => speeds.push(speed),
+    });
+    expect(speeds.at(-1)).toBe(0.15);
+    demo.stop();
+    expect(speeds.at(-1)).toBe(1);
   });
 
   it('暂停后不推进提示，继续不重复触发，重播清空旧进度', () => {
@@ -85,23 +101,59 @@ describe('自动演示剧本（路演讲解）', () => {
     });
 
     vi.advanceTimersByTime(5_000);
-    expect(cues).toEqual(['boundary', 'observe-cabin']);
-    expect(api.state.context.memory.map((item) => item.id)).toContain('parking-card');
+    expect(cues).toEqual(['commute']);
+    expect(api.state.scenario).toBe('commute');
 
     demo.pause();
     vi.advanceTimersByTime(20_000);
-    expect(cues).toEqual(['boundary', 'observe-cabin']);
+    expect(cues).toEqual(['commute']);
 
     demo.resume();
     vi.advanceTimersByTime(4_100);
-    expect(cues).toEqual(['boundary', 'observe-cabin', 'observe-phone']);
+    expect(cues).toEqual(['commute', 'fatigue-monitoring']);
 
     demo.restart();
-    expect(api.state.context.memory).toHaveLength(0);
+    expect(api.state.scenario).toBe('commute');
     expect(transport.at(-1)).toBe('running');
     vi.advanceTimersByTime(600);
-    expect(cues.at(-1)).toBe('boundary');
+    expect(cues.at(-1)).toBe('commute');
     demo.stop();
+  });
+
+  it('完整执行 Git 三幕动作，完成后冻结且路线仍大于零', () => {
+    vi.useFakeTimers();
+    const api = createCockpit();
+    let speed = 1;
+    let simTimer: ReturnType<typeof setInterval> | null = null;
+    const demo = runAutoDemo({
+      act: api.actions,
+      ensureSimVision: () => undefined,
+      setSpeed: (next) => { speed = next; },
+      setSimulationRunning: (running) => {
+        if (simTimer) clearInterval(simTimer);
+        simTimer = running ? setInterval(() => api.step(0.2 * speed), 100) : null;
+      },
+    });
+
+    vi.advanceTimersByTime(13_100);
+    expect(api.state.scenario).toBe('fatigue');
+    expect(api.state.driver.simFatigue).toBeGreaterThanOrEqual(62);
+    vi.advanceTimersByTime(6_000);
+    expect(api.state.driver.simFatigue).toBeGreaterThanOrEqual(88);
+    vi.advanceTimersByTime(4_000);
+    expect(api.state.driver.simFatigue).toBeLessThan(20);
+    vi.advanceTimersByTime(7_000);
+    expect(api.state.scenario).toBe('complex');
+    vi.advanceTimersByTime(16_000);
+    expect(api.state.scenario).toBe('commute');
+    vi.advanceTimersByTime(14_100);
+    expect(demo.getState()).toBe('completed');
+    expect(api.state.drive.routeKm).toBeGreaterThan(0);
+    const frozen = api.state.t;
+    vi.advanceTimersByTime(5_000);
+    expect(api.state.t).toBe(frozen);
+    demo.stop();
+    if (simTimer) clearInterval(simTimer);
   });
 
   it('主线程长任务结束后冻结丢失时间，不把多个电影镜头挤在同一帧', () => {
@@ -125,7 +177,7 @@ describe('自动演示剧本（路演讲解）', () => {
       now += 50;
       vi.advanceTimersByTime(50);
     }
-    expect(cues).toEqual(['boundary']);
+    expect(cues).toEqual(['commute']);
     demo.stop();
   });
 });
@@ -160,30 +212,44 @@ describe('数字孪生镜头派生', () => {
     expect(finalCenter).toEqual([0, 0, 0]);
   });
 
-  it('原因、行动与确认阶段映射到不同镜头和语义颜色', () => {
-    const state = createState('visionLoop');
-    state.context.memory.push({
-      id: 'parking-card', label: 'Parking card', location: 'in the left door pocket', owner: 'Driver',
-      importance: 'normal', confidence: 0.94, source: 'simulated-event', lastSeenAt: 1, present: true,
-    });
+  it('三幕映射到不同镜头和青／橙／红语义状态', () => {
+    const state = createState('commute');
+    const commute = deriveTwinFrame(state, 'commute', 'calm');
+    expect(commute.camera).toBe('rearChase');
+    expect(commute.accent).toBe('verify');
+    expect(commute.bodyOpacity).toBe(1);
 
-    const cause = deriveTwinFrame(state, 'cause-linked', 'warn');
-    expect(cause.camera).toBe('cause');
-    expect(cause.bodyOpacity).toBeLessThan(0.5);
-    expect(cause.gaze).toBe('cause');
-    expect(cause.accent).toBe('cause');
+    const care = deriveTwinFrame(state, 'fatigue-care', 'warn');
+    expect(care.camera).toBe('gaze');
+    expect(care.accent).toBe('cause');
+    expect(care.gaze).toBe('warning');
+    expect(care.effect).toBe('care');
 
-    state.cabin.readingLight = 'Driver left';
-    expect(deriveTwinFrame(state, 'cause-linked', 'warn').readingLight).toBe(false);
-    const action = deriveTwinFrame(state, 'assistance', 'warn');
-    expect(action.readingLight).toBe(true);
-    expect(action.camera).toBe('assist');
+    const urgent = deriveTwinFrame(state, 'fatigue-urgent', 'urgent');
+    expect(urgent.camera).toBe('cause');
+    expect(urgent.accent).toBe('danger');
+    expect(urgent.gaze).toBe('urgent');
+    expect(urgent.bodyOpacity).toBeLessThan(0.5);
 
-    state.cabin.readingLight = 'Off';
-    const verified = deriveTwinFrame(state, 'verified', 'care');
-    expect(verified.camera).toBe('verify');
-    expect(verified.accent).toBe('verify');
-    expect(verified.gaze).toBe('forward');
+    state.drive.leadBrake = true;
+    const complex = deriveTwinFrame(state, 'complex-roads', 'warn');
+    expect(complex.camera).toBe('rainChase');
+    expect(complex.accent).toBe('danger');
+    expect(complex.effect).toBe('weather');
+
+    expect(deriveTwinFrame(state, 'voice-command', 'care').camera).toBe('console');
+  });
+
+  it('休息、路况恢复和完成阶段回到青色安全语义', () => {
+    const state = createState('fatigue');
+    const rest = deriveTwinFrame(state, 'fatigue-rest', 'care');
+    expect(rest.camera).toBe('cabin');
+    expect(rest.accent).toBe('verify');
+    expect(rest.effect).toBe('rest');
+    const recovered = deriveTwinFrame(state, 'conditions-ease', 'calm');
+    expect(recovered.camera).toBe('rearWide');
+    expect(recovered.accent).toBe('verify');
+    expect(deriveTwinFrame(state, 'completed', 'calm').effect).toBe('complete');
   });
 });
 
@@ -247,39 +313,6 @@ describe('座舱氛围分级', () => {
     const s = base();
     s.pending = { prompt: '需要休息吗？', options: [{ key: 'rest', label: '立即休息' }] };
     expect(ambientLevelOf(s)).toBe('danger');
-  });
-});
-
-describe('Landing 伪 3D 投影（纯函数）', () => {
-  it('绕 Y 轴旋转 90°：+x 轴单位向量转到 -z', () => {
-    const r = rotY({ x: 1, y: 0, z: 0 }, Math.PI / 2);
-    expect(r.x).toBeCloseTo(0, 6);
-    expect(r.y).toBe(0);
-    expect(r.z).toBeCloseTo(-1, 6);
-  });
-
-  it('透视投影：光轴上的点落在画布中心，近大远小', () => {
-    const onAxis = project({ x: 0, y: 0, z: 0 }, 7, 3, 100, 50, 10);
-    expect(onAxis.x).toBeCloseTo(100, 6);
-    expect(onAxis.y).toBeCloseTo(50, 6);
-    const near = project({ x: 1, y: 0, z: 4 }, 7, 3, 0, 0, 10);
-    const far = project({ x: 1, y: 0, z: 0 }, 7, 3, 0, 0, 10);
-    expect(Math.abs(near.x)).toBeGreaterThan(Math.abs(far.x));
-  });
-
-  it('品牌渐变端点：暗红 #a82c36 → 橙红 #ff7838', () => {
-    expect(brandColor(0)).toBe('rgba(168, 44, 54, 1)');
-    expect(brandColor(1)).toBe('rgba(255, 120, 56, 1)');
-  });
-
-  it('线框座舱结构完整：双侧轮廓/侧窗/轮环/扫描环 + 12 棱检测框 + 4 视线', () => {
-    const m = buildCabin();
-    // 2 侧轮廓 + 2 侧窗 + 4 轮环 + 1 感知扫描环
-    expect(m.loops.length).toBe(9);
-    expect(m.segments.length).toBeGreaterThanOrEqual(10); // 轮廓纵向连线
-    expect(m.headBoxSegs.length).toBe(12);
-    expect(m.gazes.length).toBe(4);
-    expect(m.head.y).toBeGreaterThan(0.8); // 头部位于座舱高度
   });
 });
 

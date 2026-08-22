@@ -154,7 +154,7 @@ a:focus-visible {
 }
 
 .twin-canvas,
-.twin-fallback {
+.twin-loader {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -163,30 +163,16 @@ a:focus-visible {
 
 .twin-canvas { z-index: 2; display: block; }
 
-.twin-fallback {
+.twin-loader {
   z-index: 1;
   display: grid;
   place-items: center;
-  color: var(--metal);
-  opacity: 1;
-  transition: opacity 600ms ease;
+  background: radial-gradient(circle at 50% 53%, rgba(94, 234, 212, 0.055), transparent 32%);
 }
 
-.twin-fallback.hidden { opacity: 0; }
-
-.twin-fallback svg {
-  width: min(76vw, 1040px);
-  max-height: 68vh;
-  overflow: visible;
+.twin-stage[data-renderer="unavailable"] .twin-loader {
+  background: radial-gradient(circle at 50% 53%, rgba(255, 122, 61, 0.065), transparent 32%);
 }
-
-.twin-fallback-floor { fill: rgba(94, 234, 212, 0.045); stroke: rgba(94, 234, 212, 0.28); }
-.twin-fallback-car { fill: #151c26; fill-opacity: 0.9; stroke: #a9b2bf; stroke-width: 2.2; filter: drop-shadow(0 18px 26px rgba(0, 0, 0, 0.7)); }
-.twin-fallback-glass { fill: #080c13; stroke: rgba(169, 178, 191, 0.76); stroke-width: 1.5; }
-.twin-fallback-wheel { fill: #05070a; stroke: #7e8998; stroke-width: 6; }
-.twin-fallback-cabin { fill: none; stroke: var(--cause); stroke-width: 2; opacity: 0.92; }
-.twin-stage[data-accent="verify"] .twin-fallback-cabin { stroke: var(--verify); }
-.twin-stage[data-accent="danger"] .twin-fallback-cabin { stroke: var(--danger); }
 
 .twin-renderer-state {
   position: absolute;
@@ -568,10 +554,10 @@ a:focus-visible {
   grid-area: rail;
   position: relative;
   display: grid;
-  grid-template-columns: repeat(4, minmax(62px, 1fr));
+  grid-template-columns: repeat(3, minmax(78px, 1fr));
   align-items: start;
   gap: 0;
-  min-width: 360px;
+  min-width: 320px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -700,34 +686,14 @@ a:focus-visible {
 .entry-transition.leaving { opacity: 0; pointer-events: none; }
 
 .entry-skip {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  min-width: 178px;
-  min-height: 58px;
-  padding: 8px 16px;
+  min-width: 268px;
+  min-height: 84px;
+  padding: 10px 18px;
   border: 0;
   color: var(--text);
   background: transparent;
   cursor: pointer;
 }
-
-.entry-mark {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  width: 56px;
-  height: 42px;
-  border: 1px solid rgba(169, 178, 191, 0.35);
-  border-radius: 23px 23px 17px 17px;
-  background: linear-gradient(155deg, #202733, #030509 70%);
-}
-
-.entry-mark i { width: 4px; height: 12px; border-radius: 4px; background: white; box-shadow: 0 0 8px rgba(255,255,255,.7); }
-.entry-skip > span:last-child { display: grid; text-align: left; gap: 3px; }
-.entry-skip b { font: 700 1.15rem/1 var(--numeric); letter-spacing: 0.22em; }
-.entry-skip small { color: var(--muted); font: 600 0.58rem/1 var(--numeric); letter-spacing: 0.16em; }
 
 .entry-line {
   position: absolute;
@@ -1110,7 +1076,7 @@ body.high-contrast {
     font-size: 0.53rem;
   }
 
-  .twin-fallback svg { width: 112vw; transform: translateY(-8vh); }
+  .twin-loader { transform: translateY(-7vh); }
 
   .cinema-story-layer {
     bottom: 12px;

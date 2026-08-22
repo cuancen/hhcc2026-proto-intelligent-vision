@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent, RefObject } from 'react';
-import type { CockpitActions, CockpitState, ContextStage, EmotionId, VisionSample } from '../../core';
+import { complexityOf, P } from '../../core';
+import type { CockpitActions, CockpitState, EmotionId, VisionSample } from '../../core';
 import type { DmsStatus } from '../../vision/dms';
 import type { DmsMode } from '../hooks/useDms';
 import CinemaIcon from './CinemaIcon';
@@ -28,14 +29,6 @@ const EMOTION_LABEL: Record<EmotionId, string> = {
   surprised: 'Surprised',
   drowsy: 'Drowsy',
 };
-const CONTEXT_STAGE_LABEL: Record<ContextStage, string> = {
-  See: 'SEE',
-  Understand: 'UNDERSTAND',
-  Act: 'ACT',
-  Verify: 'VERIFY',
-  Remind: 'REMIND',
-};
-
 function Metric({ label, value, tone = 'normal' }: { label: string; value: string; tone?: 'normal' | 'warn' | 'danger' }) {
   return <div className="evidence-metric" data-tone={tone}><span>{label}</span><b>{value}</b></div>;
 }
@@ -101,8 +94,18 @@ export default function EvidenceDrawer({
 
   const sample = dms.sample;
   const perclos = sample ? sample.perclos * 100 : 0;
-  const events = [...snap.context.events].reverse();
   const alerts = [...snap.alerts].reverse();
+  const visionFatigue = sample?.present
+    ? Math.min(100, Math.max(P.perclosFatigueK * sample.perclos, Math.min(P.lookAwayFatigueCap, sample.lookAwaySec * 6)))
+    : 0;
+  const roadComplexity = complexityOf(snap);
+  const decision = snap.driver.fatigue >= P.fatigueTh.urgent
+    ? 'Urgent fatigue intervention'
+    : snap.driver.fatigue >= P.fatigueTh.care
+      ? 'Gentle fatigue care'
+      : roadComplexity >= P.complexityBlock
+        ? 'Coordinated cautious mode'
+        : 'Monitoring within normal range';
 
   const submitCommand = (event: FormEvent) => {
     event.preventDefault();
@@ -164,8 +167,8 @@ export default function EvidenceDrawer({
           <section id="panel-perception" role="tabpanel" aria-labelledby="tab-perception" hidden={tab !== 'perception'}>
             <div className="evidence-boundary-card">
               <div><span>DMS SOURCE</span><b>{SOURCE_LABEL[dms.mode]}</b></div>
-              <div><span>OBJECT SOURCE</span><b>Simulated vision events</b></div>
-              <p>The driver camera can run live and is processed only in this browser. Object locations are transparently labeled simulated semantic inputs, not a claim of general object recognition.</p>
+              <div><span>DRIVING ENVIRONMENT</span><b>Simulated vehicle state</b></div>
+              <p>The driver camera can run live and is processed only in this browser. Workload, weather and road events are transparently simulated for the prototype.</p>
             </div>
 
             <div className="evidence-section-head">
@@ -201,32 +204,28 @@ export default function EvidenceDrawer({
               <Metric label="DRIVER PRESENT" value={sample ? (sample.present ? 'Yes' : 'No') : '—'} tone={sample && !sample.present ? 'danger' : 'normal'} />
             </div>
 
-            <div className="evidence-section-head"><h3>Cabin Semantic Memory</h3><span>{snap.context.memory.length} ITEMS</span></div>
-            <div className="evidence-list">
-              {snap.context.memory.length ? snap.context.memory.map((item) => (
-                <div className="evidence-row" key={item.id}>
-                  <div><b>{item.label}</b><span>{item.location}</span></div>
-                  <small>{Math.round(item.confidence * 100)}% · SIMULATED EVENT</small>
-                </div>
-              )) : <p className="evidence-empty">Once the loop starts, only semantic object locations are retained — never the raw frame.</p>}
-            </div>
           </section>
 
           <section id="panel-reasoning" role="tabpanel" aria-labelledby="tab-reasoning" hidden={tab !== 'reasoning'}>
             <div className="reasoning-summary">
-              <span>CURRENT HYPOTHESIS</span>
-              <h3>{snap.context.cause ?? 'Waiting for people, objects and time to form a relationship'}</h3>
-              <p>{snap.context.assistance ?? 'EVA observes the evidence before deciding whether to intervene.'}</p>
+              <span>CURRENT DECISION</span>
+              <h3>{decision}</h3>
+              <p>EVA takes the stronger fatigue channel, then combines it with road complexity and explicit safety thresholds.</p>
             </div>
-            <div className="evidence-section-head"><h3>Explainable Event Chain</h3><span>{events.length} EVENTS</span></div>
-            <div className="event-trace" role="log">
-              {events.length ? events.map((event) => (
-                <div key={event.id} data-stage={event.stage}>
-                  <i>{CONTEXT_STAGE_LABEL[event.stage]}</i>
-                  <p>{event.text}</p>
-                  <small>{event.t.toFixed(1)}′</small>
-                </div>
-              )) : <p className="evidence-empty">No reasoning events yet. Run the 60-second loop to build a See—Understand—Act—Verify trace.</p>}
+            <div className="evidence-section-head"><h3>Fatigue Fusion</h3><span>TAKE THE STRONGER</span></div>
+            <div className="evidence-metrics">
+              <Metric label="WORKLOAD CHANNEL" value={`${Math.round(snap.driver.simFatigue)}%`} tone={snap.driver.simFatigue >= 85 ? 'danger' : snap.driver.simFatigue >= 60 ? 'warn' : 'normal'} />
+              <Metric label="VISION CHANNEL" value={sample?.present ? `${Math.round(visionFatigue)}%` : '—'} tone={visionFatigue >= 85 ? 'danger' : visionFatigue >= 60 ? 'warn' : 'normal'} />
+              <Metric label="FUSED FATIGUE" value={`${Math.round(snap.driver.fatigue)}%`} tone={snap.driver.fatigue >= 85 ? 'danger' : snap.driver.fatigue >= 60 ? 'warn' : 'normal'} />
+              <Metric label="CARE / URGENT" value={`${P.fatigueTh.care} / ${P.fatigueTh.urgent}`} />
+            </div>
+
+            <div className="evidence-section-head"><h3>Road Context</h3><span>{roadComplexity} / 3 FACTORS</span></div>
+            <div className="evidence-list">
+              <div className="evidence-row"><div><b>Rain</b><span>Visibility and target-speed trim</span></div><small>{snap.drive.rain ? 'ACTIVE' : 'CLEAR'}</small></div>
+              <div className="evidence-row"><div><b>Night</b><span>Lighting and cautious display state</span></div><small>{snap.drive.night ? 'ACTIVE' : 'DAY'}</small></div>
+              <div className="evidence-row"><div><b>Congestion</b><span>Entertainment block threshold</span></div><small>{snap.drive.road === 'congested' ? 'ACTIVE' : 'CLEAR'}</small></div>
+              <div className="evidence-row"><div><b>Decision threshold</b><span>Coordinated response at factor {P.complexityBlock}</span></div><small>{roadComplexity >= P.complexityBlock ? 'CAUTIOUS' : 'NORMAL'}</small></div>
             </div>
           </section>
 

@@ -1,6 +1,6 @@
 /**
  * 集中参数表 —— 所有业务阈值唯一出处。
- * 修改任何阈值必须：① 跑 `npm test` 回归 ② 同步 docs/PIPELINE.md 参数表 ③ 过一遍主闭环与三个保留场景。
+ * 修改任何阈值必须：① 跑 `npm test` 回归 ② 同步 docs/PIPELINE.md 参数表 ③ 过一遍三场景。
  * 注：本产品定位为 **L2 辅助驾驶**（驾驶员始终承担监管责任），不涉及 L3 及以上自动驾驶表述。
  */
 export const P = {
@@ -46,7 +46,6 @@ export const P = {
 } as const;
 
 export const SCENARIOS = {
-  visionLoop: { label: 'Vision Context Loop', desc: 'Simulated object events + live DMS → understand, act and verify' },
   commute: { label: 'Daily Commute', desc: 'Boarding greeting · identity · usual route · personalized cabin' },
   fatigue: { label: 'Fatigue Guard', desc: 'Vision PERCLOS + simulated workload fatigue → graded intervention' },
   complex: { label: 'Complex Roads', desc: 'Rainy night + congestion + curves → coordinated cautious mode' },

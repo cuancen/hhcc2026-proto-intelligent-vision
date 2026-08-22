@@ -11,10 +11,10 @@
 **一句话**：跑在浏览器里的 L2 辅助驾驶座舱原型——端侧 DMS 与情境语义记忆共同解释驾驶员为什么看开路面，由 EVA 解决原因并在整车数字孪生中确认结果。
 
 **两个页面**（hash 路由，零路由库）：
-- `/` 品牌首页 Landing：红橙暗色设计语言 + **石墨金属 3D 车 Hero**（three.js + Sketchfab CC-BY 模型，失败自动回退手写线框）
+- `/` 品牌首页 Landing：石墨黑 + 橙/青设计语言 + **石墨金属 3D 车 Hero**（three.js + Sketchfab CC-BY 模型，加载/失败显示 EVA 状态头像）
 - `#/cockpit` 单一全屏数字孪生主舞台：左右边缘 HUD 只保留高频状态，完整技术证据集中在抽屉
 
-**演示主轴**：60 秒、10 个稳定镜头提示走完情境闭环（透明边界 → 物品记忆 → 视线风险 → 原因关联 → 提供行动 → DMS 确认 → 离车提醒）。日常通勤、疲劳守护、复杂路况仍作为三个手动场景保留；暂停、继续和重播不会重复触发镜头。
+**演示主轴**：60 秒、9 个稳定镜头提示依次走完日常通勤、疲劳守护、复杂路况三幕。三个场景也可单独运行；暂停、继续和重播不会重复触发镜头。
 
 ---
 
@@ -37,13 +37,13 @@
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  landing/   品牌首页（独立于业务，可整体删掉不影响座舱）        │
-│    CarModel → carScene(three.js) ⇄ 失败回退 CabinModel(线框)  │
+│    CarModel → carScene(three.js) ⇄ EVA 加载/离线状态头像      │
 ├─────────────────────────────────────────────────────────────┤
 │  shell/     UI 外壳                                          │
 │    hooks: useCockpit(订阅内核) useDms(视觉生命周期)           │
 │           useTts(本地语音) useUiPrefs(字号/对比度/静音)       │
 │    twin: 整车场景 + 剧情帧派生 + 二维降级                   │
-│    components: 边缘 HUD / 单句叙事 / 四阶段轨 / 证据抽屉     │
+│    components: 边缘 HUD / 单句叙事 / 三幕轨 / 证据抽屉       │
 ├────────────── requestAnimationFrame 直读 liveState ──────────┤
 │  vision/    机器视觉（只产出 VisionSample，不碰 UI）          │
 │    dms.ts(MediaPipe 引擎,多源容灾) → metrics.ts(纯函数) ←──┐  │
@@ -89,7 +89,7 @@ src/
 │  │  ├─ useDms.ts               视觉生命周期：model/sim/off 三态，失败自动降级
 │  │  ├─ useTts.ts               speechSynthesis(en-US)，无语音包环境自动跳过
 │  │  └─ useUiPrefs.ts           字号 4 档/高对比/语音开关，localStorage 持久化
-│  ├─ autoDemo.ts                可暂停 60s 单时间轴：10 个 DemoCue + transport API
+│  ├─ autoDemo.ts                可暂停 60s 单时间轴：9 个 DemoCue + transport API
 │  ├─ simulationClock.ts         仅 running 时推进内核
 │  ├─ ambient.ts                 紧急度→三档氛围色（青碧/琥珀/红）
 │  ├─ evaFace.ts / evaAvatar.ts  情绪推导纯函数 / 半身像线框几何（纯函数）
@@ -99,11 +99,10 @@ src/
 │                               CinemaControls/EvidenceDrawer/EntryTransition
 ├─ landing/
 │  ├─ Landing.tsx                首页骨架（Hero/Features/Demo/Run/About/页脚署名）
-│  ├─ CarModel.tsx               3D 车 React 包装：动态 import + 线框回退 + 交叉淡入
+│  ├─ CarModel.tsx               3D 车 React 包装：动态 import + EVA 状态回退 + 交叉淡入
 │  ├─ carScene.ts                three.js 场景：石墨金属覆盖(跳过玻璃/发光件)/RoomEnvironment/
 │  │                             品牌橙轮廓光/贴地软阴影/双向自动取景/自转悬浮/完整 dispose
-│  ├─ CabinModel.tsx             手写 Canvas 伪 3D 线框座舱（兜底视觉，零依赖）
-│  ├─ projection.ts              透视投影/绕 Y 旋转/品牌渐变 纯函数（线框与测试共用）
+│  ├─ ../shared/EvaLoadingAvatar  首页/进舱/座舱共用加载与离线状态
 │  └─ landing.css                首页样式（红橙设计语言 + .car-stage 过渡）
 tests/                          core.test(25) + vision.test(13) + shell.test(25) = 63 项
 public/models/                  face_landmarker.task(自托管) + geely.glb(meshopt 压缩 5MB)
@@ -153,15 +152,15 @@ simVision 合成信号 ┘（与真实模型走完全相同的 metrics 管线）
 | GPU delegate 失败 | 自动重试 CPU | `tryCreate('GPU') catch → CPU` |
 | 摄像头被拒绝 | 自动切模拟信号，不报错 | `useDms.startModel catch` |
 | 无语音包环境 | TTS 静默跳过（防渲染进程挂死） | `useTts` |
-| 3D 车加载失败 | 回退手写 Canvas 线框 | `CarModel.tsx catch` |
+| 3D 车加载失败 | 保留 EVA 离线状态，座舱功能继续运行 | `CarModel.tsx / TwinStage.tsx catch` |
 | 模拟信号 | 与真实管线共用 metrics，链路一致 | `simVision.ts` |
 
 `firstOk(sources, open, label)` 这个依次尝试的小函数是整个容灾观的浓缩——新外部资源照此模式接。
 
 ### 4.5 自动演示与页面接力（autoDemo.ts + App.tsx）
 
-- 剧本 = 10 个稳定 `DemoCue` + 单一时间轴调度器；`pause/resume/restart/stop` 不会重复触发步骤；
-- Landing「Watch the 60s Loop」→ `sessionStorage['eva.autodemo']='1'` → hash 跳座舱 → 舞台就绪后自动开演；
+- 剧本 = 9 个稳定 `DemoCue` + 单一时间轴调度器；`pause/resume/restart/stop` 不会重复触发步骤；
+- Landing「Run Live Demo」→ `sessionStorage['eva.autodemo']='1'` → hash 跳座舱 → 舞台就绪后自动开演；
 - 暂停不清理现场，完成后冻结现场；评委可以随时打开证据抽屉检查链路。
 
 ### 4.6 首页 3D 车（landing/carScene.ts）
@@ -175,7 +174,7 @@ simVision 合成信号 ┘（与真实模型走完全相同的 metrics 管线）
 
 ## 5. 复用指南（哪些可以直接搬走）
 
-> 原则：越靠下越独立。core 不依赖 React，metrics 不依赖 core，projection/evaAvatar 依赖为零。
+> 原则：越靠下越独立。core 不依赖 React，metrics 不依赖 core，evaAvatar 依赖为零。
 
 | 想复用什么 | 搬什么 | 要带什么依赖 | 去哪都能用吗 |
 |---|---|---|---|
@@ -184,7 +183,7 @@ simVision 合成信号 ┘（与真实模型走完全相同的 metrics 管线）
 | **MediaPipe 容灾引擎** | `src/vision/dms.ts` | `@mediapipe/tasks-vision`（动态 import）+ metrics | ✅ 产 VisionSample 回调，UI 无关 |
 | **模拟信号源**（无摄像头演示） | `src/vision/simVision.ts` | metrics + 一个 `getState()` | ✅ 任何"需要假传感器"的场景 |
 | **3D 模型展示位**（任意 GLB 产品展示） | `carScene.ts + CarModel.tsx` | three；改 `modelUrl` 即换模型 | ✅ 材质覆盖逻辑可替换为任意品牌展台 |
-| **伪 3D 线框渲染**（零依赖 3D 感） | `landing/projection.ts + CabinModel.tsx` | 无 | ✅ 透视投影纯函数 + Canvas，学习成本极低 |
+| **EVA 加载/离线状态** | `shared/EvaLoadingAvatar.tsx` | React + CSS | ✅ 首页、进舱与座舱统一复用 |
 | **双通道状态分发模式** | `useCockpit.ts` 的写法 | React | 模式可移植：interval+快照给框架、活引用给 Canvas |
 | **多源容灾模式** | `firstOk()` 三行 | 无 | ✅ 一切外部资源 |
 | **剧本式自动演示模式** | `autoDemo.ts` 写法 | 无 | ✅ 步骤表 + 定时器 + 可停不停现场 |

@@ -136,16 +136,6 @@ export function applyScenario(ctx: EvaCtx, id: CockpitState['scenario']) {
   // 脚本时刻基于当前 t 顺延，避免中途切换场景时多条播报挤在同一拍
   const at = (delay: number, fn: () => void) => ctx.q.push([s.t + delay, fn]);
 
-  if (id === 'visionLoop') {
-    s.drive.road = 'highway';
-    s.drive.auto = true;
-    s.drive.routeKm = 240;
-    s.driver.simFatigue = Math.min(s.driver.simFatigue, 18);
-    at(0.2, () => {
-      say(ctx, 'sys', 'EVA Vision Loop started. Driver DMS can run live or use a simulated fallback; object locations are explicitly simulated vision events. L2 remains assistance — keep supervising and be ready to take over.');
-    });
-  }
-
   if (id === 'commute') {
     s.drive.road = 'city';
     s.drive.auto = false;

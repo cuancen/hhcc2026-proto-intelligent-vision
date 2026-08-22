@@ -1,0 +1,64 @@
+.eva-loading-avatar {
+  --eva-loader-accent: #5eead4;
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  color: #f2f5f8;
+  text-align: center;
+  pointer-events: none;
+}
+
+.eva-loading-avatar[data-state="unavailable"] { --eva-loader-accent: #ff7a3d; }
+
+.eva-loading-orbit {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 126px;
+  height: 126px;
+  border: 1px solid color-mix(in srgb, var(--eva-loader-accent) 24%, transparent);
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--eva-loader-accent) 12%, transparent), transparent 66%);
+  box-shadow: 0 0 54px color-mix(in srgb, var(--eva-loader-accent) 14%, transparent);
+}
+
+.eva-loading-orbit::before,
+.eva-loading-orbit::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border: 1px solid transparent;
+  border-top-color: color-mix(in srgb, var(--eva-loader-accent) 72%, transparent);
+  border-right-color: color-mix(in srgb, var(--eva-loader-accent) 20%, transparent);
+  border-radius: 50%;
+  animation: evaLoaderOrbit 2.2s linear infinite;
+}
+
+.eva-loading-orbit::after {
+  inset: 8px;
+  animation-duration: 3.1s;
+  animation-direction: reverse;
+  opacity: 0.55;
+}
+
+.eva-loading-copy { display: grid; gap: 7px; }
+.eva-loading-copy strong {
+  color: var(--eva-loader-accent);
+  font: 700 0.69rem/1.1 Bahnschrift, "Arial Narrow", sans-serif;
+  letter-spacing: 0.2em;
+}
+.eva-loading-copy small {
+  color: #7f8998;
+  font: 500 0.64rem/1.2 Bahnschrift, "Arial Narrow", sans-serif;
+  letter-spacing: 0.08em;
+}
+
+.eva-loading-avatar.compact { grid-template-columns: auto 1fr; align-items: center; justify-items: start; gap: 16px; text-align: left; }
+.eva-loading-avatar.compact .eva-loading-orbit { width: 68px; height: 68px; }
+
+@keyframes evaLoaderOrbit { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .eva-loading-orbit::before,
+  .eva-loading-orbit::after { animation: none !important; }
+}

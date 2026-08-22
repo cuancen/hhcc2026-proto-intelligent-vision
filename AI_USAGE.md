@@ -33,9 +33,9 @@ Three.js frontend code (graphite metal; glass and emissive light parts keep thei
 original materials); the original downloaded asset is black. The file was also
 re-encoded with gltf-transform (meshopt geometry compression, 24 MB → 5 MB);
 no geometry was modified. This static glb asset is used for the landing hero
-and the cockpit digital-twin prototype, with automatic Canvas/2D fallbacks if
-loading fails. All Three.js scene setup, lighting, shadow, cinematic camera,
-procedural cabin and fallback rendering logic are fully
+and the cockpit digital-twin prototype, with a shared EVA loading/offline state
+if WebGL or model loading fails. All Three.js scene setup, lighting, shadow,
+cinematic camera, procedural cabin and fallback-state rendering logic are fully
 implemented by our team. No external hackathon project source code is reused.
 The same attribution is shown in the landing page footer.
 
@@ -43,14 +43,14 @@ The same attribution is shown in the landing page footer.
 该模型为社区爱好者自制，**并非吉利官方原厂资产**；车身漆面由我们的 Three.js
 前端代码在运行时覆盖为石墨金属材质（玻璃与车灯发光件保留原材质），并对文件做了
 meshopt 几何压缩（24 MB → 5 MB，未改动几何）。GLB 同时用于首页与座舱数字孪生，
-加载失败自动回退团队自研的 Canvas/二维舞台；Three.js 场景、灯光、阴影、电影镜头、
-程序化座舱与降级渲染均为团队自研，未复用任何外部黑客松项目源码。页脚同步展示同一署名。
+加载失败时保留团队自研的 EVA 状态头像，座舱 HUD、控制和证据仍可运行；Three.js 场景、
+灯光、阴影、电影镜头、程序化座舱与降级渲染均为团队自研，未复用任何外部黑客松项目源码。页脚同步展示同一署名。
 
 ## Third-party dependencies (used as normal libraries)
 
 - [React 18](https://react.dev/) / [Vite](https://vitejs.dev/) — MIT
 - [three.js](https://threejs.org/) — MIT (landing hero and cockpit digital twin;
-  loaded via dynamic import, with wireframe/2D fallback)
+  loaded via dynamic import, with an EVA loading/offline state)
 - [MediaPipe Tasks Vision](https://developers.google.com/mediapipe) — Apache-2.0,
   self-hosted model & WASM runtime (`public/models/`, `scripts/copy-wasm.mjs`)
 
