@@ -3,19 +3,19 @@
 > **[中文版](PROJECT_GUIDE.md)** — a deep tour for teammates: one level deeper than the README —
 > why the architecture looks the way it does, which modules you can lift and reuse as-is,
 > how to change things safely, and where to go next. Doc map at the end.
-> Updated: 2026-08-22 (v0.9.0, cinematic vehicle digital twin on latest remote baseline)
+> Updated: 2026-08-22 (v1.0.0, seven-state EVA, vehicle-anchored driving stage, and Evidence workbench)
 
 ---
 
 ## 0. Understand it in 30 seconds
 
-**One sentence**: an L2 driver-assistance cockpit prototype running entirely in the browser — on-device DMS and semantic context memory explain *why* a driver looked away, then EVA resolves the cause and verifies the outcome on a cinematic vehicle digital twin.
+**One sentence**: an L2 driver-assistance cockpit prototype running entirely in the browser — on-device DMS and simulated driving context jointly assess driver state, then EVA coordinates graded care, cabin actions and supervised assistance responses.
 
 **Two pages** (hash routing, zero router libraries):
-- `/` — brand landing: dark red-orange design language + a **real-time 3D car hero** (three.js + a CC-BY Sketchfab model, auto-falls back to a hand-written wireframe on any failure)
-- `#/cockpit` — one full-screen digital-twin stage; slim edge HUD rails expose essential live state and a drawer holds detailed technical evidence
+- `/` — brand landing: dark red-orange design language + a **real-time 3D car hero** (three.js + a CC-BY Sketchfab model, with a shared EVA status fallback)
+- `#/cockpit` — one full-screen digital-twin stage; the default view keeps only the chapter, speed/L2, one EVA line and controls, while a wide workbench holds detailed evidence
 
-**Demo backbone**: one 60-second, 10-cue Vision Context Loop (transparent boundary → object memory → gaze risk → cause link → assistance → DMS verification → exit reminder). Commute, Fatigue Guard and Complex Roads remain available as manual scenes. The transport can pause, continue and replay without losing or double-firing a cue.
+**Demo backbone**: one 60-second, nine-cue tour across City Commute, Fatigue Guard and Complex Roads. Each scene also runs independently, and the transport can pause, continue and replay without losing or double-firing a cue.
 
 ---
 
@@ -23,7 +23,7 @@
 
 | Choice | Why |
 |---|---|
-| React 18 + Vite 5 + TS strict | Mainstream, fast, types-as-documentation |
+| React 18 + Vite 8 + TS strict | Mainstream, fast, types-as-documentation |
 | **No** router / state / UI-component libraries | Hash routing is 15 lines; all state is one `useCockpit` hook; hand-rolled CSS won on visual consistency (and judges like "built from scratch") |
 | MediaPipe Tasks Vision (Apache-2.0) | 478-point facial landmarks in-browser, WASM/GPU on-device, frames never uploaded |
 | three.js (MIT, dynamic import) | Landing hero and cockpit digital twin; model failure leaves the cockpit functional behind an EVA status view |
@@ -44,8 +44,8 @@
 │    hooks: useCockpit(kernel subscription) useDms(vision      │
 │           lifecycle) useTts(local speech) useUiPrefs         │
 │    twin: vehicle scene + cue-derived frames + EVA fallback   │
-│    components: edge HUD rails + narration + evidence drawer │
-│                story rail + cinematic transport controls    │
+│    components: header + EVA narration + three-column        │
+│                evidence workbench + cinematic controls      │
 ├────────────── rAF reads liveState() directly ───────────────┤
 │  vision/    Machine vision (produces VisionSample only)      │
 │    dms.ts(MediaPipe engine, multi-source) → metrics.ts ──┐   │
@@ -99,8 +99,8 @@ src/
 │  ├─ evaFace.ts / evaAvatar.ts  Mood derivation / bust wireframe geometry (pure functions)
 │  ├─ twin/                      Three.js vehicle scene + deriveTwinFrame + EVA status fallback
 │  ├─ theme.css                  Automotive cinematic design system + responsive drawer
-│  └─ components/                CockpitHeader/SystemsRail/EvaNarration/StoryRail/
-│                                CinemaControls/EvidenceDrawer/EntryTransition
+│  └─ components/                CockpitHeader/EvaNarration/CinemaControls/
+│                                EvidenceDrawer/EntryTransition
 ├─ landing/
 │  ├─ Landing.tsx                Page skeleton (Hero/Features/Demo/Run/About/footer credit)
 │  ├─ CarModel.tsx               3D car React wrapper: dynamic import + EVA status fallback + fade
@@ -109,7 +109,7 @@ src/
 │  │                             dual-axis auto-framing / hover-spin / full disposal
 │  ├─ ../shared/EvaLoadingAvatar Shared landing/entry/cockpit loading and offline state
 │  └─ landing.css                Landing styles (red-orange language + .car-stage transition)
-tests/                          core(25) + vision(13) + shell/interaction(25) = 63 tests
+tests/                          core(25) + vision(13) + shell/interaction(30) = 68 tests
 public/models/                  face_landmarker.task (self-hosted) + geely.glb (meshopt, 5 MB)
 scripts/copy-wasm.mjs           postinstall: MediaPipe WASM → public/ (offline-ready)
 docs/                           PIPELINE (params/data flow) · feature manual · AI statement
@@ -215,7 +215,7 @@ setInterval(() => { ck.step(0.2); console.log(ck.snapshot().evaMode); }, 100);
 
 **Add a vision metric** (yawn / on-screen gaze ratio, etc.): add a pure function + unit test in `metrics.ts` → call it in the `dms.ts` sampling loop and extend `VisionSample` (`types.ts`) → consume it in `evaRules` → display in `DmsPanel`. Keep `simVision.ts` synthesizing the same signal.
 
-**Add visible cockpit evidence**: keep the main stage sparse. Put one glanceable value in `SystemsRail`, or detailed controls/history in one of the `EvidenceDrawer` tabs. Props take only `snap`/`act` (never kernel internals).
+**Add visible cockpit evidence**: keep the main stage sparse. Put only indispensable one-glance state on the stage, and place detailed controls/history in the Perception / Reasoning / Execution columns of `EvidenceDrawer`. Props take only `snap`/`act` (never kernel internals).
 
 **Swap the 3D car model**: put the new GLB in `public/models/` → change `modelUrl` in `carScene.ts`; compress big files first (`npx @gltf-transform/cli quantize in.glb t.glb && npx @gltf-transform/cli meshopt t.glb out.glb` — measured 24 MB→5 MB); third-party models must follow the CC-BY attribution flow in `AI_USAGE.md` + page footer.
 
@@ -253,7 +253,7 @@ setInterval(() => { ck.step(0.2); console.log(ck.snapshot().evaMode); }, 100);
 **Demo / pitch**
 - BootSplash already self-checks — add a "camera calibration" ritual animation to signal the vision is real;
 - Record the official 60 s demo video: the auto-demo + DemoBanner narration are ready-made;
-- The stats bar (4/0/1/63) and CHANGELOG are the iteration evidence chain — surface them proactively in Q&A.
+- The stats bar (478/0/3/68) and CHANGELOG are the iteration evidence chain — surface them proactively in Q&A.
 
 ---
 
@@ -262,7 +262,7 @@ setInterval(() => { ck.step(0.2); console.log(ck.snapshot().evaMode); }, 100);
 ```bash
 npm install      # postinstall copies MediaPipe WASM into public/ (offline-ready)
 npm run dev      # dev server (5173 by default, auto-increments — watch the port!)
-npm test         # 63 regression tests (core 25 + vision 13 + shell/interaction 25)
+npm test         # 68 regression tests (core 25 + vision 13 + shell/interaction 30)
 npm run build    # tsc --noEmit + vite build
 ```
 

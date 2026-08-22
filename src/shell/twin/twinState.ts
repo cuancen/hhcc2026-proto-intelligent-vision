@@ -16,13 +16,23 @@ export interface TwinFrame {
   effect: TwinEffect;
   environment: TwinEnvironment;
   motionIntensity: number;
-  wheelMotion: boolean;
   braking: boolean;
 }
 
 export interface ModelFit {
   scale: number;
   position: readonly [number, number, number];
+  groundY: number;
+}
+
+/** CSS 环境流动的统一冻结闸门。 */
+export function isTwinMotionActive(
+  frame: TwinFrame,
+  running: boolean,
+  reducedMotion: boolean,
+  pageVisible = true,
+): boolean {
+  return running && pageVisible && !reducedMotion && frame.motionIntensity > 0;
 }
 
 /** 将任意模型包围盒缩放并重新居中到孪生舞台原点。 */
@@ -35,12 +45,13 @@ export function fitModelBounds(
   return {
     scale,
     position: [-center[0] * scale, -center[1] * scale, -center[2] * scale],
+    groundY: -(size[1] * scale) / 2,
   };
 }
 
 const CAMERA_BY_CUE: Record<DemoCue, TwinCameraPreset> = {
   commute: 'rearChase',
-  'fatigue-monitoring': 'rearChase',
+  'fatigue-monitoring': 'driver',
   'fatigue-care': 'gaze',
   'fatigue-urgent': 'cause',
   'fatigue-rest': 'cabin',
@@ -52,7 +63,7 @@ const CAMERA_BY_CUE: Record<DemoCue, TwinCameraPreset> = {
 
 const OPACITY_BY_CUE: Record<DemoCue, number> = {
   commute: 1,
-  'fatigue-monitoring': 1,
+  'fatigue-monitoring': 0.34,
   'fatigue-care': 0.28,
   'fatigue-urgent': 0.2,
   'fatigue-rest': 0.38,
@@ -137,7 +148,6 @@ export function deriveTwinFrame(state: CockpitState, cue: DemoCue | null, mood: 
     effect: EFFECT_BY_CUE[effectiveCue],
     environment: ENVIRONMENT_BY_CUE[effectiveCue],
     motionIntensity,
-    wheelMotion: ['rearChase', 'rainChase', 'rearWide'].includes(camera) && state.drive.speed > 1,
     braking: effectiveCue === 'complex-roads' && state.drive.leadBrake,
   };
 }

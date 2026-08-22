@@ -11,6 +11,7 @@ import EntryTransition from './shell/components/EntryTransition';
 import EvaNarration from './shell/components/EvaNarration';
 import EvidenceDrawer from './shell/components/EvidenceDrawer';
 import { deriveEvaExpression, deriveMood } from './shell/evaFace';
+import { createEvidencePlaybackGate } from './shell/evidencePlayback';
 import { useCockpit } from './shell/hooks/useCockpit';
 import { useDms } from './shell/hooks/useDms';
 import { useUiPrefs } from './shell/hooks/useUiPrefs';
@@ -57,7 +58,7 @@ export default function App() {
   const demoRef = useRef<AutoDemoHandle | null>(null);
   const dmsRef = useRef(dms);
   const handoffConsumedRef = useRef(false);
-  const evidenceResumeRef = useRef(false);
+  const evidencePlaybackRef = useRef(createEvidencePlaybackGate());
   dmsRef.current = dms;
 
   useEffect(() => {
@@ -74,6 +75,8 @@ export default function App() {
       document.body.classList.remove('cockpit-body');
       demoRef.current?.stop();
       demoRef.current = null;
+      evidencePlaybackRef.current.reset();
+      setEvidenceOpen(false);
       pause();
     };
   }, [pause, route]);
@@ -143,8 +146,8 @@ export default function App() {
   }, [runScenario, selectedExperience, startDemo]);
 
   const openEvidence = useCallback(() => {
-    evidenceResumeRef.current = transport === 'running';
-    if (evidenceResumeRef.current) {
+    const shouldPause = evidencePlaybackRef.current.open(transport);
+    if (shouldPause) {
       if (demoRef.current) demoRef.current.pause();
       else { pause(); setTransport('paused'); }
     }
@@ -153,8 +156,7 @@ export default function App() {
 
   const closeEvidence = useCallback(() => {
     setEvidenceOpen(false);
-    if (!evidenceResumeRef.current) return;
-    evidenceResumeRef.current = false;
+    if (!evidencePlaybackRef.current.close()) return;
     if (demoRef.current) demoRef.current.resume();
     else { play(); setTransport('running'); }
   }, [play]);

@@ -2,13 +2,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DEMO_STEPS, runAutoDemo } from '../src/shell/autoDemo';
 import { BOOT_SEQUENCE } from '../src/shell/components/BootSplash';
 import { ENTRY_MAX_MS } from '../src/shell/components/EntryTransition';
-import { deriveMood, MOOD_FRESH_MIN } from '../src/shell/evaFace';
+import { deriveEvaExpression, deriveMood, MOOD_FRESH_MIN } from '../src/shell/evaFace';
+import { createEvidencePlaybackGate } from '../src/shell/evidencePlayback';
 import { ambientLevelOf, URGENT_FRESH_MIN } from '../src/shell/ambient';
 import { buildBust, eyeShapeOf, MOOD_COLOR } from '../src/shell/evaAvatar';
 import { createState } from '../src/core/sim';
 import { createCockpit, SCENARIOS } from '../src/core';
 import { createSimulationClock } from '../src/shell/simulationClock';
-import { deriveTwinFrame, fitModelBounds } from '../src/shell/twin/twinState';
+import { deriveTwinFrame, fitModelBounds, isTwinMotionActive } from '../src/shell/twin/twinState';
 
 afterEach(() => {
   vi.useRealTimers();
@@ -210,20 +211,28 @@ describe('数字孪生镜头派生', () => {
       1.19 * fit.scale + fit.position[2],
     ];
     expect(finalCenter).toEqual([0, 0, 0]);
+    expect(fit.groundY).toBeLessThan(-0.9);
   });
 
   it('三幕映射到不同镜头和青／橙／红语义状态', () => {
     const state = createState('commute');
+    state.drive.speed = 80;
     const commute = deriveTwinFrame(state, 'commute', 'calm');
     expect(commute.camera).toBe('rearChase');
     expect(commute.accent).toBe('verify');
     expect(commute.bodyOpacity).toBe(1);
+    expect(commute.environment).toBe('city');
+    expect(commute.motionIntensity).toBeGreaterThan(0);
 
     const care = deriveTwinFrame(state, 'fatigue-care', 'warn');
     expect(care.camera).toBe('gaze');
     expect(care.accent).toBe('cause');
     expect(care.gaze).toBe('warning');
     expect(care.effect).toBe('care');
+    expect(care.environment).toBe('highway');
+
+    const fatigue = deriveTwinFrame(state, 'fatigue-monitoring', 'care');
+    expect(fatigue.camera).toBe('driver');
 
     const urgent = deriveTwinFrame(state, 'fatigue-urgent', 'urgent');
     expect(urgent.camera).toBe('cause');
@@ -236,6 +245,8 @@ describe('数字孪生镜头派生', () => {
     expect(complex.camera).toBe('rainChase');
     expect(complex.accent).toBe('danger');
     expect(complex.effect).toBe('weather');
+    expect(complex.environment).toBe('rain-night');
+    expect(complex.braking).toBe(true);
 
     expect(deriveTwinFrame(state, 'voice-command', 'care').camera).toBe('console');
   });
@@ -249,7 +260,23 @@ describe('数字孪生镜头派生', () => {
     const recovered = deriveTwinFrame(state, 'conditions-ease', 'calm');
     expect(recovered.camera).toBe('rearWide');
     expect(recovered.accent).toBe('verify');
-    expect(deriveTwinFrame(state, 'completed', 'calm').effect).toBe('complete');
+    const completed = deriveTwinFrame(state, 'completed', 'calm');
+    expect(completed.effect).toBe('complete');
+    expect(completed.motionIntensity).toBe(0);
+  });
+
+  it('速度、播放、页面可见性和减弱动效共同控制环境运动', () => {
+    const state = createState('commute');
+    state.drive.speed = 80;
+    const frame = deriveTwinFrame(state, 'commute', 'calm');
+    expect(isTwinMotionActive(frame, true, false, true)).toBe(true);
+    expect(isTwinMotionActive(frame, false, false, true)).toBe(false);
+    expect(isTwinMotionActive(frame, true, true, true)).toBe(false);
+    expect(isTwinMotionActive(frame, true, false, false)).toBe(false);
+    state.drive.speed = 0;
+    const stopped = deriveTwinFrame(state, 'commute', 'calm');
+    expect(stopped.motionIntensity).toBe(0);
+    expect(isTwinMotionActive(stopped, true, false, true)).toBe(false);
   });
 });
 
@@ -277,6 +304,46 @@ describe('Eva 表情系统（情绪推导）', () => {
     expect(deriveMood('Observing', { kind: 'urg', t: 5 }, 5.1)).toBe('urgent');
     expect(deriveMood('Cautious', { kind: 'care', t: 5 }, 5.1)).toBe('warn');
     expect(deriveMood('Guarding', { kind: 'warn', t: 5 }, 5.1)).toBe('warn');
+  });
+
+  it('七种功能表情均可由稳定剧情提示覆盖', () => {
+    const expressions = new Set([
+      deriveEvaExpression('commute', 'calm', 'neutral', 'running'),
+      deriveEvaExpression('fatigue-monitoring', 'calm', 'neutral', 'running'),
+      deriveEvaExpression('fatigue-care', 'calm', 'neutral', 'running'),
+      deriveEvaExpression('fatigue-urgent', 'calm', 'neutral', 'running'),
+      deriveEvaExpression('complex-roads', 'calm', 'neutral', 'running'),
+      deriveEvaExpression('voice-command', 'calm', 'neutral', 'running'),
+      deriveEvaExpression('completed', 'calm', 'neutral', 'completed'),
+    ]);
+    expect(expressions).toEqual(new Set(['calm', 'thinking', 'caring', 'urgent', 'cautious', 'listening', 'confirming']));
+  });
+
+  it('六类驾驶员情绪映射到功能表情', () => {
+    expect(deriveEvaExpression(null, 'calm', 'neutral', 'running')).toBe('calm');
+    expect(deriveEvaExpression(null, 'calm', 'happy', 'running')).toBe('confirming');
+    expect(deriveEvaExpression(null, 'calm', 'sad', 'running')).toBe('caring');
+    expect(deriveEvaExpression(null, 'calm', 'drowsy', 'running')).toBe('caring');
+    expect(deriveEvaExpression(null, 'calm', 'angry', 'running')).toBe('cautious');
+    expect(deriveEvaExpression(null, 'calm', 'surprised', 'running')).toBe('listening');
+  });
+
+  it('紧急安全状态高于剧情，剧情高于实时驾驶员情绪', () => {
+    expect(deriveEvaExpression('voice-command', 'urgent', 'happy', 'running')).toBe('urgent');
+    expect(deriveEvaExpression('voice-command', 'calm', 'angry', 'running')).toBe('listening');
+    expect(deriveEvaExpression(null, 'calm', 'happy', 'completed')).toBe('confirming');
+  });
+});
+
+describe('Evidence 播放闸门', () => {
+  it('只恢复打开前正在运行的体验，原本暂停时不得误续播', () => {
+    const gate = createEvidencePlaybackGate();
+    expect(gate.open('running')).toBe(true);
+    expect(gate.open('paused')).toBe(true);
+    expect(gate.close()).toBe(true);
+    expect(gate.close()).toBe(false);
+    expect(gate.open('paused')).toBe(false);
+    expect(gate.close()).toBe(false);
   });
 });
 

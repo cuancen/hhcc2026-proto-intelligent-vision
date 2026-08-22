@@ -2,17 +2,17 @@
 
 > **[English version](PROJECT_GUIDE_EN.md)** — 面向队友的深度导览：比 README 更深一层——架构为什么这样设计、哪些模块可以直接搬走复用、
 > 怎么安全地改、以及下一步可以往哪走。配套文档地图见文末。
-> 更新：2026-08-22（0.9.0，电影化整车数字孪生已融合至远端最新基线）
+> 更新：2026-08-22（1.0.0，EVA 七态角色、车辆锚定行驶舞台与 Evidence 工作台）
 
 ---
 
 ## 0. 三十秒理解这个项目
 
-**一句话**：跑在浏览器里的 L2 辅助驾驶座舱原型——端侧 DMS 与情境语义记忆共同解释驾驶员为什么看开路面，由 EVA 解决原因并在整车数字孪生中确认结果。
+**一句话**：跑在浏览器里的 L2 辅助驾驶座舱原型——端侧 DMS 与行车工况双通道理解驾驶员状态，由 EVA 给出分级关怀、座舱动作和受监管的辅助驾驶响应。
 
 **两个页面**（hash 路由，零路由库）：
 - `/` 品牌首页 Landing：石墨黑 + 橙/青设计语言 + **石墨金属 3D 车 Hero**（three.js + Sketchfab CC-BY 模型，加载/失败显示 EVA 状态头像）
-- `#/cockpit` 单一全屏数字孪生主舞台：左右边缘 HUD 只保留高频状态，完整技术证据集中在抽屉
+- `#/cockpit` 单一全屏数字孪生主舞台：默认只保留章节、车速/L2、EVA 单句与控制；完整技术证据集中在宽幅三列工作台
 
 **演示主轴**：60 秒、9 个稳定镜头提示依次走完日常通勤、疲劳守护、复杂路况三幕。三个场景也可单独运行；暂停、继续和重播不会重复触发镜头。
 
@@ -22,7 +22,7 @@
 
 | 用了什么 | 为什么 |
 |---|---|
-| React 18 + Vite 5 + TS strict | 主流、快、类型即文档 |
+| React 18 + Vite 8 + TS strict | 主流、快、类型即文档 |
 | **不用**路由库 / 状态库 / UI 组件库 | hash 路由 15 行搞定；状态就是 `useCockpit` 一个 hook；自研 CSS 反而赢了风格一致性（评委也认可"从零搭建"） |
 | MediaPipe Tasks Vision（Apache-2.0） | 浏览器端 478 点面部关键点，WASM/GPU 本地推理，画面零上传 |
 | three.js（MIT，动态 import） | 首页 Hero 与座舱数字孪生共用；模型失败仍可完整运行二维安全舞台 |
@@ -43,7 +43,7 @@
 │    hooks: useCockpit(订阅内核) useDms(视觉生命周期)           │
 │           useTts(本地语音) useUiPrefs(字号/对比度/静音)       │
 │    twin: 整车场景 + 剧情帧派生 + 二维降级                   │
-│    components: 边缘 HUD / 单句叙事 / 三幕轨 / 证据抽屉       │
+│    components: 顶栏 / EVA 单句叙事 / 三列证据工作台 / 控制   │
 ├────────────── requestAnimationFrame 直读 liveState ──────────┤
 │  vision/    机器视觉（只产出 VisionSample，不碰 UI）          │
 │    dms.ts(MediaPipe 引擎,多源容灾) → metrics.ts(纯函数) ←──┐  │
@@ -95,8 +95,8 @@ src/
 │  ├─ evaFace.ts / evaAvatar.ts  情绪推导纯函数 / 半身像线框几何（纯函数）
 │  ├─ twin/                      Three.js 整车场景 / deriveTwinFrame / 二维安全舞台
 │  ├─ theme.css                  车规电影化设计系统 + 响应式证据抽屉
-│  └─ components/                CockpitHeader/SystemsRail/EvaNarration/StoryRail/
-│                               CinemaControls/EvidenceDrawer/EntryTransition
+│  └─ components/                CockpitHeader/EvaNarration/CinemaControls/
+│                               EvidenceDrawer/EntryTransition
 ├─ landing/
 │  ├─ Landing.tsx                首页骨架（Hero/Features/Demo/Run/About/页脚署名）
 │  ├─ CarModel.tsx               3D 车 React 包装：动态 import + EVA 状态回退 + 交叉淡入
@@ -104,7 +104,7 @@ src/
 │  │                             品牌橙轮廓光/贴地软阴影/双向自动取景/自转悬浮/完整 dispose
 │  ├─ ../shared/EvaLoadingAvatar  首页/进舱/座舱共用加载与离线状态
 │  └─ landing.css                首页样式（红橙设计语言 + .car-stage 过渡）
-tests/                          core.test(25) + vision.test(13) + shell.test(25) = 63 项
+tests/                          core.test(25) + vision.test(13) + shell.test(30) = 68 项
 public/models/                  face_landmarker.task(自托管) + geely.glb(meshopt 压缩 5MB)
 scripts/copy-wasm.mjs           postinstall：MediaPipe WASM → public/（离线可用）
 docs/                           PIPELINE(参数表/数据流) 功能说明 AI使用声明
@@ -210,7 +210,7 @@ setInterval(() => { ck.step(0.2); console.log(ck.snapshot().evaMode); }, 100);
 
 **加视觉指标**（如哈欠/注视屏占比）：`metrics.ts` 加纯函数 + 单测 → `dms.ts` 采样循环里调用并塞进 `VisionSample`（`types.ts` 加字段）→ `evaRules` 消费 → `DmsPanel` 展示。模拟通道 `simVision.ts` 记得同步合成该信号。
 
-**增加座舱可见证据**：主舞台保持克制；一眼可读的值放 `SystemsRail`，详细控制与历史放进 `EvidenceDrawer` 的感知/推理/执行页。props 只接 `snap`/`act`，不直连内核内部。
+**增加座舱可见证据**：主舞台保持克制；默认画面只放必须的一句话或一个状态，详细控制与历史放进 `EvidenceDrawer` 的 Perception / Reasoning / Execution 三列。props 只接 `snap`/`act`，不直连内核内部。
 
 **换 3D 车模型**：新 GLB 放 `public/models/` → `carScene.ts` 改 `modelUrl`；大文件先 `npx @gltf-transform/cli quantize in.glb t.glb && npx @gltf-transform/cli meshopt t.glb out.glb` 压缩（24MB→5MB 实测）；第三方模型必须按 CC-BY 流程在 `AI_USAGE.md` + 页脚署名。
 
@@ -248,7 +248,7 @@ setInterval(() => { ck.step(0.2); console.log(ck.snapshot().evaMode); }, 100);
 **演示/路演向**
 - BootSplash 开机自检已有——可加一段「摄像头标定」仪式感动画，暗示视觉是真实在跑；
 - 录制 60s 官方演示视频：自动演示 + DemoBanner 讲解词现成，直接照着念；
-- 数据条（4/0/1/63）与 CHANGELOG 是迭代证据链，答辩时主动展示。
+- 数据条（478/0/3/68）与 CHANGELOG 是迭代证据链，答辩时主动展示。
 
 ---
 
@@ -257,7 +257,7 @@ setInterval(() => { ck.step(0.2); console.log(ck.snapshot().evaMode); }, 100);
 ```bash
 npm install      # postinstall 自动拷贝 MediaPipe WASM 到 public/（离线可用）
 npm run dev      # 开发（默认 5173，被占自动顺延——注意看端口！）
-npm test         # 63 项回归（core 25 + vision 13 + shell/交互 25），必须全绿
+npm test         # 68 项回归（core 25 + vision 13 + shell/交互 30），必须全绿
 npm run build    # tsc --noEmit + vite build
 ```
 

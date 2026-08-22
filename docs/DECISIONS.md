@@ -75,3 +75,17 @@
 - **Status:** Accepted
 - **Decision:** Use `https://github.com/cuancen/hhcc2026-proto-intelligent-vision` as the official public competition repository. Retain `https://github.com/b1207739631-rgb/hhcc-2026-prototype` as the team staging mirror and synchronize only verified milestones to both `main` branches.
 - **Reason:** The team confirmed that the `cuancen` repository is the public submission target. Keeping the staging mirror preserves the verified handoff while the public repository remains the authoritative URL for judges.
+
+## D-012 - Use one shared EVA avatar and a single evidence workbench
+
+- **Date:** 2026-08-22
+- **Status:** Accepted
+- **Decision:** Use the team-approved purple-blue EVA shell with seven SVG-driven functional expressions across brand, narration, loading, and offline states. Hide the earlier box-shaped 3D EVA. Replace edge telemetry and tabbed evidence with one wide Perception / Reasoning / Execution workbench that pauses the experience while open.
+- **Reason:** A consistent character makes EVA legible without adding another 3D asset, while the consolidated workbench keeps the demonstration cinematic and preserves full technical inspectability.
+
+## D-013 - Anchor the procedural driving world to the vehicle rig
+
+- **Date:** 2026-08-22
+- **Status:** Accepted
+- **Decision:** Parent the procedural road, lane lines, city volumes, depth gates, and simulated lead vehicle to the same stage as the GLB vehicle. Align that world to the measured vehicle longitudinal axis, derive road height from the fitted model floor, use distinct commute/fatigue/complex camera families, and omit wheel animation.
+- **Reason:** A shared rig prevents the road and vehicle from drifting into different perspective lines. Model-derived ground clearance avoids tyre intersections, while scene-specific cameras communicate the three scenarios more clearly without modifying the high-poly GLB wheel geometry.

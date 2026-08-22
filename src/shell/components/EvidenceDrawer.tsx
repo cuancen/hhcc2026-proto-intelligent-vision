@@ -6,14 +6,6 @@ import type { DmsStatus } from '../../vision/dms';
 import type { DmsMode } from '../hooks/useDms';
 import CinemaIcon from './CinemaIcon';
 
-type EvidenceTab = 'perception' | 'reasoning' | 'execution';
-
-const TAB_LABEL: Record<EvidenceTab, string> = {
-  perception: 'Perception',
-  reasoning: 'Reasoning',
-  execution: 'Execution',
-};
-
 const SOURCE_LABEL: Record<DmsMode, string> = {
   off: 'DMS not active',
   model: 'Live camera · on-device',
@@ -66,7 +58,6 @@ export default function EvidenceDrawer({
     toggleVoice: () => void;
   };
 }) {
-  const [tab, setTab] = useState<EvidenceTab>('perception');
   const [command, setCommand] = useState('');
   const drawerRef = useRef<HTMLElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -147,30 +138,24 @@ export default function EvidenceDrawer({
           </button>
         </div>
 
-        <div className="evidence-tabs" role="tablist" aria-label="Technical evidence categories">
-          {(Object.keys(TAB_LABEL) as EvidenceTab[]).map((id) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              id={`tab-${id}`}
-              aria-selected={tab === id}
-              aria-controls={`panel-${id}`}
-              onClick={() => setTab(id)}
-            >
-              {TAB_LABEL[id]}
-            </button>
-          ))}
+        <div className="evidence-chain" aria-label="Active evidence chain: perception to reasoning to execution">
+          <div><i>01</i><span>Perception</span><b>{SOURCE_LABEL[dms.mode]}</b></div>
+          <em aria-hidden="true">→</em>
+          <div><i>02</i><span>Reasoning</span><b>{decision}</b></div>
+          <em aria-hidden="true">→</em>
+          <div><i>03</i><span>Execution</span><b>{snap.drive.l2Degraded ? 'Safety response' : 'Coordinated output'}</b></div>
+        </div>
+
+        <div className="evidence-boundary-card">
+          <div><span>DMS SOURCE</span><b>{SOURCE_LABEL[dms.mode]}</b></div>
+          <div><span>DRIVING ENVIRONMENT</span><b>Simulated vehicle state</b></div>
+          <p>The driver camera can run live and is processed only in this browser. Workload, weather and road events are transparently simulated for the prototype.</p>
         </div>
 
         <div className="evidence-scroll">
-          <section id="panel-perception" role="tabpanel" aria-labelledby="tab-perception" hidden={tab !== 'perception'}>
-            <div className="evidence-boundary-card">
-              <div><span>DMS SOURCE</span><b>{SOURCE_LABEL[dms.mode]}</b></div>
-              <div><span>DRIVING ENVIRONMENT</span><b>Simulated vehicle state</b></div>
-              <p>The driver camera can run live and is processed only in this browser. Workload, weather and road events are transparently simulated for the prototype.</p>
-            </div>
-
+          <div className="evidence-workbench">
+          <section className="evidence-column" data-stage="perception" aria-labelledby="evidence-perception-title">
+            <header className="evidence-column-title"><span>01 / INPUT</span><h3 id="evidence-perception-title">Perception</h3></header>
             <div className="evidence-section-head">
               <h3>Driver Monitoring</h3>
               <span data-state={dms.mode}>{dms.status.kind === 'loading' ? 'Loading model' : SOURCE_LABEL[dms.mode]}</span>
@@ -206,7 +191,8 @@ export default function EvidenceDrawer({
 
           </section>
 
-          <section id="panel-reasoning" role="tabpanel" aria-labelledby="tab-reasoning" hidden={tab !== 'reasoning'}>
+          <section className="evidence-column" data-stage="reasoning" aria-labelledby="evidence-reasoning-title">
+            <header className="evidence-column-title"><span>02 / FUSION</span><h3 id="evidence-reasoning-title">Reasoning</h3></header>
             <div className="reasoning-summary">
               <span>CURRENT DECISION</span>
               <h3>{decision}</h3>
@@ -229,7 +215,8 @@ export default function EvidenceDrawer({
             </div>
           </section>
 
-          <section id="panel-execution" role="tabpanel" aria-labelledby="tab-execution" hidden={tab !== 'execution'}>
+          <section className="evidence-column" data-stage="execution" aria-labelledby="evidence-execution-title">
+            <header className="evidence-column-title"><span>03 / OUTPUT</span><h3 id="evidence-execution-title">Execution</h3></header>
             <div className="execution-l2">
               <div><span>L2 ASSISTANCE</span><b>{snap.drive.l2Degraded ? 'Safety degraded' : snap.drive.auto ? 'Combined assistance active' : 'Standby'}</b></div>
               <button type="button" aria-pressed={snap.drive.auto} onClick={setAuto}>{snap.drive.auto ? 'Disable L2' : 'Enable L2'}</button>
@@ -275,6 +262,7 @@ export default function EvidenceDrawer({
               <button type="button" onClick={() => prefs.zoom(1)} aria-label="Increase text size">A+</button>
             </div>
           </section>
+          </div>
         </div>
       </aside>
     </>

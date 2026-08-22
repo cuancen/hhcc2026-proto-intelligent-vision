@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { CockpitState } from '../../core';
 import EvaLoadingAvatar from '../../shared/EvaLoadingAvatar';
+import { isTwinMotionActive } from './twinState';
 import type { TwinFrame } from './twinState';
 import type { TwinSceneController } from './twinScene';
 
@@ -89,7 +90,7 @@ export default function TwinStage({
     return () => document.removeEventListener('visibilitychange', onVisibility);
   }, []);
 
-  const moving = running && pageVisible && !reduced && frame.motionIntensity > 0;
+  const moving = isTwinMotionActive(frame, running, reduced, pageVisible);
   const style = {
     '--twin-motion-intensity': frame.motionIntensity.toFixed(3),
     '--twin-flow-duration': `${Math.max(0.34, 1.62 - frame.motionIntensity * 1.2).toFixed(2)}s`,
@@ -103,24 +104,25 @@ export default function TwinStage({
       data-accent={frame.accent}
       data-environment={frame.environment}
       data-moving={moving ? 'true' : 'false'}
-      data-wheel-motion={frame.wheelMotion ? 'true' : 'false'}
       data-braking={frame.braking ? 'true' : 'false'}
       style={style}
     >
       <div className="twin-driving-environment" aria-hidden="true">
-        <div className="twin-skyline">
-          {Array.from({ length: 15 }, (_, index) => <i key={index} />)}
-        </div>
-        <div className="twin-road">
-          <span className="twin-lane-flow" />
-          <span className="twin-road-sheen" />
+        <div className="twin-depth-streams">
+          {Array.from({ length: 11 }, (_, index) => (
+            <i
+              key={index}
+              style={{
+                '--stream-angle': `${(index - 5) * 4.1}deg`,
+                '--stream-delay': `${index * -0.12}s`,
+              } as CSSProperties}
+            />
+          ))}
         </div>
         <div className="twin-road-gates">
-          {Array.from({ length: 8 }, (_, index) => <i key={index} />)}
-        </div>
-        <div className="twin-lead-vehicle"><i /><i /></div>
-        <div className="twin-rain">
-          {Array.from({ length: 22 }, (_, index) => <i key={index} />)}
+          {Array.from({ length: 8 }, (_, index) => (
+            <i key={index} style={{ '--gate-delay': `${index * -0.22}s` } as CSSProperties} />
+          ))}
         </div>
       </div>
       {rendererState !== 'three' && (
@@ -138,7 +140,18 @@ export default function TwinStage({
         role="img"
         aria-label={`EVA vehicle digital twin, current camera ${frame.camera}`}
       />
-      <div className="twin-wheel-motion" aria-hidden="true"><i /><i /></div>
+      <div className="twin-rain" aria-hidden="true">
+        {Array.from({ length: 22 }, (_, index) => (
+          <i
+            key={index}
+            style={{
+              '--rain-x': `${(index * 47) % 103}%`,
+              '--rain-delay': `${(index % 9) * -0.14}s`,
+              '--rain-length': `${38 + ((index * 23) % 54)}px`,
+            } as CSSProperties}
+          />
+        ))}
+      </div>
       <div className="twin-renderer-state" role="status">
         <span aria-hidden="true" />
         {rendererState === 'three' ? 'LIVE 3D TWIN' : rendererState === 'unavailable' ? '3D TWIN OFFLINE' : 'BUILDING DIGITAL TWIN'}

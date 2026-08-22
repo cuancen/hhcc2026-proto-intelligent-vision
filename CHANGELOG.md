@@ -2,6 +2,14 @@
 
 本项目遵循 [Conventional Commits](https://www.conventionalcommits.org/)，提交历史即官方开发期内的迭代证据。
 
+## 1.0.0 —— EVA 角色 × 后追行驶舞台 × Evidence 工作台
+
+- `feat(eva)` 使用团队提供的紫蓝 EVA 素材派生透明无眼壳层，统一品牌、播报、加载与离线反馈；SVG 动态叠加 calm/listening/thinking/caring/cautious/urgent/confirming 七态眼神，紧急安全语义优先于剧情与实时 DMS 情绪
+- `feat(twin)` 主舞台移除左右数据栏和底部三幕注释；道路、车道线、城市体块、光门和模拟前车统一锚定到车辆舞台坐标系，并按车型几何纵轴校准。通勤使用正后追，疲劳切入透明舱内 DMS，复杂路况使用低位雨夜后追；轮胎按模型最低点留出路面间隙，不制作轮动特效
+- `feat(evidence)` Evidence 由三标签抽屉升级为 72vw 三列工作台，同屏展示 Perception → Reasoning → Execution 与真实 DMS / 模拟驾驶环境边界；打开自动暂停，关闭仅恢复原本正在播放的体验，保留 Esc、遮罩关闭与焦点恢复
+- `refactor(3d)` 隐藏原方盒 EVA，Three.js 继续采用事件驱动渲染；道路主体与车辆共用 Three.js 相机和消失点，轻量 CSS 仅承担景深流光与雨线
+- `chore(security)` Vite/Vitest 工具链升级并清零依赖审计告警；回归增至 68 项（core 25 + vision 13 + shell/交互 30）
+
 ## 0.9.0 —— 单一整车数字孪生主舞台（远端最新基线融合）
 
 - `feat(twin)` 驾驶舱改为全屏整车数字孪生：复用 `geely.glb`，程序化重建座椅、驾驶员、EVA、视线、物品热点与阅读灯；10 个稳定 `DemoCue` 驱动电影镜头与橙/青语义反馈，WebGL/模型失败完整回退二维整车舞台

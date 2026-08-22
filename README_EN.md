@@ -22,8 +22,8 @@ Nowhere in the product (UI, scripts, docs) do we use L3/L4 autonomy claims; ever
 | Distraction guard | Eyes-off-road ≥2s warning, ≥4s urgent alert + L2 degradation (slower target speed, longer headway); auto-recovery when attention returns |
 | Eva persona agent | One-line cinematic narration plus natural-language controls for temperature, music, massage, navigation, rest and L2 assistance |
 | Complex-road synergy | Rain+night+congestion factor ≥2 → block entertainment, cautious mode; auto-restore when conditions ease |
-| Digital-twin stage | Full-vehicle Three.js stage with translucent body, procedural cabin/EVA, DMS beam, rain-night feedback and story-driven camera presets |
-| Unified instrumentation | No split dashboard: slim edge HUD rails keep EVA/driver and DMS/L2/cabin state visible; complete Perception / Reasoning / Execution evidence stays in a keyboard-accessible drawer |
+| Digital-twin stage | Full-vehicle Three.js stage with a vehicle-anchored procedural road/city world, translucent cabin, DMS beam, rain-night lead vehicle and scene-specific cameras |
+| Unified instrumentation | No split dashboard: the default stage keeps only the chapter, speed/L2, one EVA line and playback controls; a wide keyboard-accessible workbench shows Perception / Reasoning / Execution together |
 | Three-act experience | A 60-second auto tour through Commute, Fatigue Guard and Complex Roads; each scene also runs independently |
 | Landing hero | Graphite 3D car (CC-BY attributed Sketchfab model, meshopt-compressed 24 MB→5 MB) with a shared EVA loading/offline state |
 
@@ -32,7 +32,7 @@ Nowhere in the product (UI, scripts, docs) do we use L3/L4 autonomy claims; ever
 ```bash
 npm install     # postinstall copies the MediaPipe WASM runtime into public/ (self-hosted, offline-ready)
 npm run dev     # http://localhost:5173 (Vite auto-increments the port if taken)
-npm test        # 63 regression tests: core 25 + vision 13 + shell/interaction 25
+npm test        # 68 regression tests: core 25 + vision 13 + shell/interaction 30
 npm run build   # type-check + production build
 ```
 
@@ -54,7 +54,7 @@ src/
 ├── shell/     Cinematic UI (React 18 + TS)
 │   ├── twin/   Three.js digital twin + pure frame derivation + EVA status fallback
 │   ├── hooks/  pausable cockpit clock / DMS / English TTS / UI preferences
-│   └── components/  header / edge HUD rails / narration / story rail / evidence drawer / movie controls
+│   └── components/  header / EVA narration / three-column evidence workbench / movie controls
 └── landing/   Brand homepage (three.js 3D car hero + shared EVA loading/offline state)
 ```
 
@@ -64,9 +64,9 @@ Stability by design: the simulation clock advances only while transport is `runn
 
 | Criterion | Where this project lands |
 |---|---|
-| Interaction & UX | Full-screen vehicle digital twin + 9-shot three-act tour + pause/continue/replay + compact edge instrumentation + hidden evidence drawer |
+| Interaction & UX | Full-screen vehicle digital twin + 9-shot three-act tour + three distinct scene cameras + pause/continue/replay + hidden evidence workbench |
 | Accessibility | 4-step font scaling (persisted) / high-contrast mode / full keyboard operation / aria-live graded announcements / prefers-reduced-motion / skip links |
-| Solid core | Zero-DOM kernel + 63 regression tests + pausable single timeline + single-source params + vision/WebGL fallbacks |
+| Solid core | Zero-DOM kernel + 68 regression tests + pausable single timeline + single-source params + vision/WebGL fallbacks |
 | Versatility | 3 demo scenes × 3 sim speeds × camera/simulated vision sources × responsive layout (desktop/tablet/phone) |
 | Iteration evidence | Everything committed during the official window; the commit history is the iteration record (see CHANGELOG.md) |
 

@@ -11,6 +11,9 @@
   --cause: #ff7a3d;
   --verify: #5eead4;
   --danger: #ff5a5f;
+  --eva-violet: #8c6cf2;
+  --eva-lilac: #b8a8ff;
+  --eva-ice: #c8f6ff;
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   --numeric: Bahnschrift, "DIN Alternate", "Arial Narrow", sans-serif;
 }
@@ -1154,4 +1157,347 @@ body.high-contrast {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* --------------------------------------------------------------------------
+   EVA 角色、后追行驶舞台与宽幅证据工作台（2026-08-22）
+   -------------------------------------------------------------------------- */
+
+.cinema-brand .eva-avatar {
+  margin: -6px -2px -6px -7px;
+  filter: drop-shadow(0 6px 18px rgba(92, 68, 190, 0.3));
+}
+
+.cinema-act-progress {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  width: 86px;
+  margin: 7px auto 0;
+}
+
+.cinema-act-progress i {
+  width: 24px;
+  height: 2px;
+  background: rgba(169, 178, 191, 0.2);
+  transition: background 220ms ease, box-shadow 220ms ease, transform 220ms ease;
+}
+
+.cinema-act-progress i[data-state="done"] { background: rgba(94, 234, 212, 0.7); }
+.cinema-act-progress i[data-state="active"] {
+  background: var(--eva-lilac);
+  box-shadow: 0 0 12px rgba(140, 108, 242, 0.7);
+  transform: scaleX(1.08);
+}
+
+.twin-driving-environment {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 44%, rgba(70, 102, 126, 0.18), transparent 36%),
+    linear-gradient(180deg, #080d16 0%, #080c13 45%, #030508 100%);
+  transition: background 700ms ease, filter 700ms ease;
+}
+
+.twin-driving-environment::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  inset: 48% 0 0;
+  opacity: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255, 65, 69, 0.34), transparent 46%);
+  transition: opacity 260ms ease;
+}
+
+.twin-stage[data-environment="city"] .twin-driving-environment {
+  background:
+    radial-gradient(circle at 22% 30%, rgba(140, 108, 242, 0.16), transparent 17%),
+    radial-gradient(circle at 78% 35%, rgba(94, 234, 212, 0.11), transparent 18%),
+    linear-gradient(180deg, #101625 0%, #090d15 48%, #030508 100%);
+}
+
+.twin-stage[data-environment="rain-night"] .twin-driving-environment {
+  background:
+    radial-gradient(ellipse at 50% 46%, rgba(81, 92, 150, 0.19), transparent 32%),
+    linear-gradient(180deg, #030610 0%, #07101a 44%, #010306 100%);
+  filter: saturate(0.85);
+}
+
+.twin-stage[data-braking="true"] .twin-driving-environment::after { opacity: 1; }
+
+.twin-driving-environment::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  top: 43.5%;
+  width: min(72vw, 1120px);
+  height: 1px;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, transparent, rgba(140, 108, 242, 0.25) 28%, rgba(94, 234, 212, 0.35) 50%, rgba(140, 108, 242, 0.25) 72%, transparent);
+  box-shadow: 0 0 24px rgba(94, 234, 212, 0.12);
+  opacity: 0.68;
+}
+
+.twin-depth-streams {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  overflow: hidden;
+  opacity: 0.44;
+  transition: opacity 500ms ease;
+}
+
+.twin-depth-streams i {
+  position: absolute;
+  left: 50%;
+  top: 43.5%;
+  width: 1px;
+  height: 74%;
+  transform: rotate(var(--stream-angle)) scaleY(0.08);
+  transform-origin: 50% 0;
+  background: linear-gradient(180deg, transparent 0 7%, rgba(140, 108, 242, 0.12) 18%, rgba(94, 234, 212, 0.38) 78%, transparent 100%);
+  filter: drop-shadow(0 0 4px rgba(94, 234, 212, 0.14));
+  opacity: 0;
+  animation: twinDepthStream calc(var(--twin-flow-duration) * 1.35) cubic-bezier(0.22, 0.68, 0.3, 1) infinite;
+  animation-delay: var(--stream-delay);
+  animation-play-state: paused;
+}
+
+.twin-depth-streams i:nth-child(3n) {
+  background: linear-gradient(180deg, transparent 0 9%, rgba(140, 108, 242, 0.28) 45%, transparent 100%);
+}
+
+.twin-stage[data-environment="rain-night"] .twin-depth-streams { opacity: 0.7; }
+.twin-stage[data-environment="cabin"] .twin-depth-streams { opacity: 0.06; }
+
+.twin-road-gates {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  overflow: hidden;
+  opacity: 0.5;
+  transition: opacity 500ms ease;
+}
+
+.twin-road-gates i {
+  position: absolute;
+  left: 50%;
+  top: 43.5%;
+  width: 10vw;
+  height: 1px;
+  border-top: 1px solid rgba(200, 246, 255, 0.28);
+  transform: translate(-50%, 0) scaleX(0.3);
+  filter: drop-shadow(0 0 5px rgba(94, 234, 212, 0.24));
+  opacity: 0;
+  animation: twinGatePass calc(var(--twin-flow-duration) * 1.75) linear infinite;
+  animation-delay: var(--gate-delay);
+  animation-play-state: paused;
+}
+
+.twin-stage[data-environment="rain-night"] .twin-road-gates { opacity: 0.74; }
+.twin-stage[data-environment="cabin"] .twin-road-gates { opacity: 0.05; }
+
+.twin-rain {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  display: none;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.twin-stage[data-environment="rain-night"] .twin-rain { display: block; }
+
+.twin-rain i {
+  position: absolute;
+  left: var(--rain-x);
+  top: -12%;
+  width: 1px;
+  height: var(--rain-length);
+  transform: rotate(13deg);
+  background: linear-gradient(180deg, transparent, rgba(176, 207, 233, 0.54));
+  filter: blur(0.2px);
+  animation: twinRain calc(var(--twin-flow-duration) * 0.88) linear infinite;
+  animation-delay: var(--rain-delay);
+  animation-play-state: paused;
+}
+
+.twin-stage[data-moving="true"] .twin-depth-streams i,
+.twin-stage[data-moving="true"] .twin-road-gates i,
+.twin-stage[data-moving="true"] .twin-rain i { animation-play-state: running; }
+
+@keyframes twinDepthStream {
+  0% { opacity: 0; transform: rotate(var(--stream-angle)) scaleY(0.05); }
+  22% { opacity: calc(0.18 + var(--twin-motion-intensity) * 0.42); }
+  100% { opacity: 0; transform: rotate(var(--stream-angle)) scaleY(1.08); }
+}
+@keyframes twinGatePass {
+  0% { top: 43.5%; width: 10vw; opacity: 0; transform: translate(-50%, 0) scaleX(0.24); }
+  16% { opacity: 0.72; }
+  100% { top: 108%; width: 118vw; opacity: 0; transform: translate(-50%, 0) scaleX(1); }
+}
+@keyframes twinRain { to { transform: translate(-10vw, 126vh) rotate(13deg); } }
+
+.cinema-story-layer {
+  width: min(1180px, calc(100vw - 48px));
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "narration controls";
+  gap: 22px;
+}
+
+.eva-narration {
+  justify-self: stretch;
+  width: auto;
+  grid-template-columns: 64px 1fr;
+  border-color: rgba(140, 108, 242, 0.24);
+  background: linear-gradient(90deg, rgba(8, 9, 16, 0.84), rgba(18, 19, 31, 0.92) 46%, rgba(7, 10, 15, 0.78));
+}
+
+.eva-narration .eva-avatar { margin: -5px 0 -5px -4px; }
+.eva-narration span { color: var(--eva-lilac); }
+
+.evidence-drawer {
+  width: min(72vw, 1120px);
+  min-width: 760px;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  background: rgba(8, 10, 16, 0.98);
+  border-left-color: rgba(140, 108, 242, 0.35);
+  box-shadow: -40px 0 90px rgba(0, 0, 0, 0.56), -1px 0 28px rgba(94, 73, 167, 0.08);
+}
+
+.evidence-chain {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 15px 22px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(90deg, rgba(140, 108, 242, 0.045), transparent 36%, rgba(94, 234, 212, 0.035));
+}
+
+.evidence-chain > div { min-width: 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 9px; align-items: baseline; }
+.evidence-chain i {
+  grid-row: 1 / span 2;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid rgba(140, 108, 242, 0.48);
+  border-radius: 50%;
+  color: var(--eva-lilac);
+  font: normal 650 0.56rem/1 var(--numeric);
+}
+.evidence-chain span { color: var(--text); font-size: 0.75rem; font-weight: 650; }
+.evidence-chain b { overflow: hidden; color: var(--muted); font: 550 0.57rem/1.3 var(--numeric); text-overflow: ellipsis; white-space: nowrap; }
+.evidence-chain em { color: rgba(140, 108, 242, 0.55); font: normal 500 1rem/1 var(--numeric); }
+
+.evidence-drawer > .evidence-boundary-card {
+  margin: 12px 22px 14px;
+  padding: 10px 13px;
+  border-color: rgba(140, 108, 242, 0.3);
+  background: linear-gradient(90deg, rgba(140, 108, 242, 0.06), rgba(255, 122, 61, 0.035));
+}
+
+.evidence-drawer > .evidence-boundary-card p { font-size: 0.68rem; line-height: 1.45; }
+
+.evidence-scroll { padding: 0 22px 28px; }
+
+.evidence-workbench {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: 1px;
+  border: 1px solid var(--line);
+  background: var(--line);
+}
+
+.evidence-column {
+  min-width: 0;
+  min-height: 100%;
+  padding: 0 15px 20px;
+  background: rgba(12, 16, 23, 0.98);
+}
+
+.evidence-column[data-stage="reasoning"] { background: rgba(15, 15, 24, 0.98); }
+.evidence-column[data-stage="execution"] { background: rgba(10, 18, 22, 0.98); }
+
+.evidence-column-title {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 54px;
+  padding: 16px 0 11px;
+  border-bottom: 1px solid rgba(140, 108, 242, 0.32);
+  background: inherit;
+}
+
+.evidence-column-title span { color: var(--eva-lilac); font: 650 0.53rem/1 var(--numeric); letter-spacing: 0.14em; }
+.evidence-column-title h3 { margin: 0; font-size: 0.88rem; letter-spacing: 0.05em; }
+.evidence-column .evidence-section-head { margin-top: 17px; }
+.evidence-column .evidence-section-head h3 { font-size: 0.75rem; }
+.evidence-column .evidence-section-head span { max-width: 54%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.evidence-column .evidence-video { aspect-ratio: 16 / 9; }
+.evidence-column .evidence-video-empty { padding: 12px; }
+.evidence-column .evidence-video-empty span { display: none; }
+.evidence-column .evidence-actions { gap: 5px; }
+.evidence-column .evidence-actions button { min-height: 36px; padding: 0 8px; font-size: 0.66rem; }
+.evidence-column .evidence-metric { min-height: 42px; padding: 8px 9px; }
+.evidence-column .evidence-metric span { font-size: 0.59rem; }
+.evidence-column .evidence-metric b { font-size: 0.69rem; }
+.evidence-column .evidence-row { padding: 10px 9px; }
+.evidence-column .evidence-row span { font-size: 0.62rem; }
+.evidence-column .execution-l2 { grid-template-columns: 1fr; }
+.evidence-column .execution-l2 button { width: 100%; }
+.evidence-column .execution-l2 p { grid-column: auto; }
+.evidence-column .actuator-grid { grid-template-columns: 1fr; }
+.evidence-column .preference-actions { gap: 5px; }
+.evidence-column .preference-actions button { min-height: 36px; padding: 0 8px; }
+
+@media (max-width: 1080px) and (min-width: 681px) {
+  .evidence-drawer { width: 88vw; min-width: 0; }
+  .evidence-workbench { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .evidence-column[data-stage="execution"] { grid-column: 1 / -1; }
+  .evidence-column[data-stage="execution"] .actuator-grid { grid-template-columns: repeat(2, 1fr); }
+
+  .cinema-story-layer {
+    grid-template-columns: 1fr;
+    grid-template-areas: "narration" "controls";
+    width: min(780px, calc(100vw - 36px));
+  }
+}
+
+@media (max-width: 680px) {
+  .cinema-brand .eva-avatar { width: 38px !important; height: 38px !important; }
+  .cinema-story-layer { grid-template-areas: "narration" "controls"; }
+  .eva-narration { grid-template-columns: 50px 1fr; }
+  .eva-narration .eva-avatar { width: 48px !important; height: 48px !important; }
+
+  .evidence-drawer { width: 100%; min-width: 0; grid-template-rows: auto auto auto minmax(0, 1fr); }
+  .evidence-chain { gap: 5px; padding: 10px 14px; }
+  .evidence-chain > div { grid-template-columns: auto; justify-items: center; text-align: center; }
+  .evidence-chain i { grid-row: auto; width: 22px; height: 22px; }
+  .evidence-chain b { display: none; }
+  .evidence-chain span { font-size: 0.65rem; }
+  .evidence-drawer > .evidence-boundary-card { margin: 9px 14px 11px; }
+  .evidence-drawer > .evidence-boundary-card p { display: none; }
+  .evidence-scroll { padding: 0 14px 24px; }
+  .evidence-workbench { grid-template-columns: 1fr; }
+  .evidence-column[data-stage="execution"] { grid-column: auto; }
+  .evidence-column { padding-inline: 12px; }
+
+  .twin-depth-streams { opacity: 0.3; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .twin-road-gates i { opacity: 0.2; top: 76%; }
+  .twin-rain i { opacity: 0.34; transform: rotate(13deg); }
+  .twin-depth-streams i { opacity: 0.16; transform: rotate(var(--stream-angle)) scaleY(0.72); }
 }

@@ -67,7 +67,7 @@ const DRIVER_EXPRESSION: Record<EmotionId, EvaExpression> = {
 };
 
 /**
- * EVA 视觉表情优先级：安全锁定 → 自动剧情 → 模式语气 → 实时驾驶员表情。
+ * EVA 视觉表情优先级：安全锁定 → 自动剧情 → 实时驾驶员表情 → 模式语气。
  * cue 只传自动巡演步骤；手动场景传 null，确保 DMS 表情可以直接反馈。
  */
 export function deriveEvaExpression(
@@ -80,7 +80,8 @@ export function deriveEvaExpression(
   const fromCue = cue ? CUE_EXPRESSION[cue] : undefined;
   if (fromCue) return fromCue;
   if (transport === 'completed') return 'confirming';
+  if (driverEmotion !== 'neutral') return DRIVER_EXPRESSION[driverEmotion];
   if (mood === 'warn') return 'cautious';
   if (mood === 'care') return 'caring';
-  return DRIVER_EXPRESSION[driverEmotion] ?? 'calm';
+  return 'calm';
 }

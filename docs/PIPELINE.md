@@ -50,7 +50,7 @@
                                       │ CockpitState + DemoCue + mood
                                       ▼
                      deriveTwinFrame ──▶ 三维镜头/透明度/DMS 光束/雨夜反馈/EVA 姿态
-                                      └─▶ 边缘 HUD + 技术证据抽屉 + aria-live
+                                      └─▶ 精简主舞台 + 三列技术证据工作台 + aria-live
 ```
 
 采样节流：真实模型每帧推理、≥100ms 向内核发样；模拟信号 10Hz。内核时钟 100ms 一拍，但只在 `running` 时执行 `step(dt=0.2×速率)`；ready / paused / completed 均冻结时间和路线。
@@ -74,7 +74,7 @@
 ## 五、验证流程（每次改动必做）
 
 ```bash
-npm test          # 63 项：内核 25 + 视觉 13 + shell/交互 25
+npm test          # 68 项：内核 25 + 视觉 13 + shell/交互 30
 npm run build     # tsc --noEmit + vite build
 npm run dev       # 手动：9 镜头三幕巡演 + 三个独立场景 + 摄像头/模拟 + 证据抽屉 + EVA 降级
 ```

@@ -42,16 +42,43 @@ const METAL = new Color(0xa9b2bf);
 const CAUSE = new Color(0xff7a3d);
 const VERIFY = new Color(0x5eead4);
 const DANGER = new Color(0xff5a5f);
+const EVA_PURPLE = new Color(0x8c6cf2);
+const ROAD_SURFACE_LOCAL_Y = -0.82;
+const TIRE_CLEARANCE = 0.035;
 
 interface CameraPose {
   position: readonly [number, number, number];
   target: readonly [number, number, number];
 }
 
+const VEHICLE_AXIS_X = 0.4689024292;
+const VEHICLE_AXIS_Z = 0.8832499713;
+const VEHICLE_YAW = Math.atan2(VEHICLE_AXIS_X, VEHICLE_AXIS_Z);
+
+function chasePose(
+  distance: number,
+  height: number,
+  lookAhead: number,
+  targetY: number,
+  lateral = 0,
+): CameraPose {
+  const lateralX = VEHICLE_AXIS_Z;
+  const lateralZ = -VEHICLE_AXIS_X;
+  return {
+    position: [
+      -VEHICLE_AXIS_X * distance + lateralX * lateral,
+      height,
+      -VEHICLE_AXIS_Z * distance + lateralZ * lateral,
+    ],
+    target: [VEHICLE_AXIS_X * lookAhead, targetY, VEHICLE_AXIS_Z * lookAhead],
+  };
+}
+
 const CAMERA_POSES: Record<TwinCameraPreset, CameraPose> = {
-  rearChase: { position: [1.1, 1.42, -7.25], target: [0, -0.02, 0.9] },
-  rainChase: { position: [-2.35, 1.66, -7.45], target: [0, 0, 0.82] },
-  rearWide: { position: [3.55, 2.5, -9.1], target: [0, 0.06, 0.62] },
+  // 车型几何 PCA 测得纵轴为 X/Z=(0.469, 0.883)，三种外景均以此轴为基准但保持不同机位。
+  rearChase: chasePose(7.45, 1.28, 1.15, -0.1),
+  rainChase: chasePose(8.9, 1.55, 1.35, -0.12, 0.45),
+  rearWide: chasePose(10.2, 2.62, 1.15, -0.08, -0.9),
   cabin: { position: [4.8, 2.8, 5.2], target: [-0.15, 0.35, 0] },
   console: { position: [2.6, 2.25, 3.7], target: [0.25, 0.48, 0.35] },
   driver: { position: [-3.4, 2.25, 3.8], target: [-0.56, 0.48, 0.48] },
@@ -93,6 +120,164 @@ function makeSeat(): Group {
   head.position.set(0, 1.03, -0.33);
   group.add(base, back, head);
   return group;
+}
+
+interface DrivingWorld {
+  group: Group;
+  city: Group;
+  gates: Group;
+  leadVehicle: Group;
+  roadMaterial: MeshBasicMaterial;
+  wetMaterial: MeshBasicMaterial;
+  laneMaterial: MeshBasicMaterial;
+  gridMaterial: MeshBasicMaterial;
+  gateMaterial: MeshBasicMaterial;
+  tailLightMaterial: MeshBasicMaterial;
+}
+
+/**
+ * 以车辆同一世界坐标构建程序化道路，而不是在 Canvas 后方拼一张二维路面。
+ * 车、车道、光门和前车因此天然共享相机与消失点，同时保持纯数字孪生风格。
+ */
+function makeDrivingWorld(): DrivingWorld {
+  const group = new Group();
+  group.name = 'procedural-driving-world';
+  // 局部道路 +Z 精确旋到车型 PCA 纵轴，避免用肉眼猜一个近似角度。
+  group.rotation.y = VEHICLE_YAW;
+
+  const unitPlane = new PlaneGeometry(1, 1);
+  const unitBox = new BoxGeometry(1, 1, 1);
+  const addGroundPlane = (
+    parent: Group,
+    material: MeshBasicMaterial | MeshStandardMaterial,
+    width: number,
+    length: number,
+    x: number,
+    z: number,
+    y: number,
+  ) => {
+    const mesh = new Mesh(unitPlane, material);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.set(x, y, z);
+    mesh.scale.set(width, length, 1);
+    parent.add(mesh);
+    return mesh;
+  };
+  const addBox = (
+    parent: Group,
+    material: MeshBasicMaterial | MeshStandardMaterial,
+    size: readonly [number, number, number],
+    position: readonly [number, number, number],
+  ) => {
+    const mesh = new Mesh(unitBox, material);
+    mesh.scale.set(...size);
+    mesh.position.set(...position);
+    parent.add(mesh);
+    return mesh;
+  };
+
+  const roadMaterial = new MeshBasicMaterial({
+    color: 0x060a10,
+    transparent: true,
+    opacity: 0.96,
+    side: DoubleSide,
+  });
+  addGroundPlane(group, roadMaterial, 8.6, 52, 0, 12.5, ROAD_SURFACE_LOCAL_Y);
+
+  const wetMaterial = new MeshBasicMaterial({
+    color: 0x607da5,
+    transparent: true,
+    opacity: 0,
+    depthWrite: false,
+    blending: AdditiveBlending,
+    side: DoubleSide,
+  });
+  addGroundPlane(group, wetMaterial, 8.3, 51.5, 0, 12.5, ROAD_SURFACE_LOCAL_Y + 0.001);
+
+  const laneMaterial = new MeshBasicMaterial({
+    color: VERIFY,
+    transparent: true,
+    opacity: 0.46,
+    depthWrite: false,
+    side: DoubleSide,
+  });
+  const gridMaterial = new MeshBasicMaterial({
+    color: 0x7690aa,
+    transparent: true,
+    opacity: 0.1,
+    depthWrite: false,
+    side: DoubleSide,
+  });
+  const shoulderMaterial = new MeshBasicMaterial({
+    color: 0x8c6cf2,
+    transparent: true,
+    opacity: 0.42,
+    depthWrite: false,
+    side: DoubleSide,
+  });
+
+  [-4.12, 4.12].forEach((x) => addGroundPlane(group, shoulderMaterial, 0.045, 52, x, 12.5, ROAD_SURFACE_LOCAL_Y + 0.003));
+  for (let z = -5.5; z <= 36; z += 3.2) {
+    [-1.52, 1.52].forEach((x) => addGroundPlane(group, laneMaterial, 0.075, 1.48, x, z, ROAD_SURFACE_LOCAL_Y + 0.003));
+  }
+  for (let z = -7; z <= 37; z += 3.8) {
+    addGroundPlane(group, gridMaterial, 8.25, 0.025, 0, z, ROAD_SURFACE_LOCAL_Y + 0.002);
+  }
+
+  const gates = new Group();
+  gates.name = 'depth-gates';
+  const gateMaterial = new MeshBasicMaterial({
+    color: VERIFY,
+    transparent: true,
+    opacity: 0.2,
+    depthWrite: false,
+  });
+  for (let z = 1.8; z <= 31; z += 5.2) {
+    addBox(gates, gateMaterial, [0.035, 1.35, 0.035], [-4.45, -0.14, z]);
+    addBox(gates, gateMaterial, [0.035, 1.35, 0.035], [4.45, -0.14, z]);
+    addBox(gates, gateMaterial, [8.93, 0.035, 0.035], [0, 0.54, z]);
+  }
+  group.add(gates);
+
+  const city = new Group();
+  city.name = 'city-volume';
+  const cityPurple = new MeshBasicMaterial({ color: 0x8c6cf2, wireframe: true, transparent: true, opacity: 0.14 });
+  const cityCyan = new MeshBasicMaterial({ color: 0x5eead4, wireframe: true, transparent: true, opacity: 0.11 });
+  for (let index = 0; index < 18; index += 1) {
+    const side = index % 2 === 0 ? -1 : 1;
+    const depthIndex = Math.floor(index / 2);
+    const height = 1.1 + ((index * 7) % 9) * 0.18;
+    const width = 0.65 + ((index * 5) % 4) * 0.13;
+    const depth = 0.7 + ((index * 3) % 5) * 0.16;
+    const x = side * (5.25 + (depthIndex % 3) * 0.42);
+    const z = 2.8 + depthIndex * 3.6;
+    addBox(city, index % 3 === 0 ? cityCyan : cityPurple, [width, height, depth], [x, -0.82 + height / 2, z]);
+  }
+  group.add(city);
+
+  const leadVehicle = new Group();
+  leadVehicle.name = 'simulated-lead-vehicle';
+  leadVehicle.position.set(-0.48, 0, 8.6);
+  const leadBodyMaterial = new MeshStandardMaterial({ color: 0x111923, metalness: 0.34, roughness: 0.54 });
+  const leadGlassMaterial = new MeshBasicMaterial({ color: 0x263a4f, transparent: true, opacity: 0.72 });
+  const tailLightMaterial = new MeshBasicMaterial({ color: DANGER, transparent: true, opacity: 0.62 });
+  addBox(leadVehicle, leadBodyMaterial, [1.15, 0.38, 1.95], [0, -0.54, 0]);
+  addBox(leadVehicle, leadGlassMaterial, [0.78, 0.25, 0.92], [0, -0.25, 0.14]);
+  [-0.37, 0.37].forEach((x) => addBox(leadVehicle, tailLightMaterial, [0.25, 0.08, 0.035], [x, -0.45, -0.995]));
+  group.add(leadVehicle);
+
+  return {
+    group,
+    city,
+    gates,
+    leadVehicle,
+    roadMaterial,
+    wetMaterial,
+    laneMaterial,
+    gridMaterial,
+    gateMaterial,
+    tailLightMaterial,
+  };
 }
 
 function disposeObject(root: Object3D) {
@@ -151,6 +336,9 @@ export async function mountTwinScene(
 
   const stage = new Group();
   scene.add(stage);
+  const drivingWorld = makeDrivingWorld();
+  // 道路与环境属于车辆舞台坐标系；车辆定位或轻微车身起伏时不会与车道脱节。
+  stage.add(drivingWorld.group);
 
   const floorMaterial = new MeshBasicMaterial({ color: 0x0a0f16 });
   const floor = new Mesh(new CircleGeometry(5.5, 96), floorMaterial);
@@ -247,6 +435,10 @@ export async function mountTwinScene(
   );
   car.scale.setScalar(fit.scale);
   car.position.set(...fit.position);
+  const surfaceY = fit.groundY - TIRE_CLEARANCE;
+  drivingWorld.group.position.y = surfaceY - ROAD_SURFACE_LOCAL_Y;
+  floor.position.y = surfaceY;
+  stageRings.forEach((ring) => { ring.position.y = surfaceY + 0.002; });
   stage.add(car);
 
   let disposed = false;
@@ -302,6 +494,19 @@ export async function mountTwinScene(
     const chaseView = ['rearChase', 'rainChase', 'rearWide'].includes(next.camera);
     floor.visible = !chaseView;
     stageRings.forEach((ring) => { ring.visible = !chaseView; });
+    drivingWorld.group.visible = chaseView;
+    drivingWorld.city.visible = chaseView && next.environment === 'city';
+    drivingWorld.gates.visible = chaseView;
+    drivingWorld.leadVehicle.visible = chaseView && next.environment === 'rain-night';
+    drivingWorld.roadMaterial.color.set(next.environment === 'rain-night' ? 0x03070d : next.environment === 'city' ? 0x080d15 : 0x060a10);
+    drivingWorld.roadMaterial.opacity = next.environment === 'rain-night' ? 0.9 : 0.96;
+    drivingWorld.wetMaterial.opacity = next.environment === 'rain-night' ? 0.1 : 0;
+    drivingWorld.laneMaterial.color.copy(next.environment === 'rain-night' ? METAL : VERIFY);
+    drivingWorld.laneMaterial.opacity = next.environment === 'rain-night' ? 0.38 : 0.5;
+    drivingWorld.gridMaterial.opacity = next.environment === 'city' ? 0.13 : 0.075;
+    drivingWorld.gateMaterial.color.copy(next.environment === 'city' ? EVA_PURPLE : next.environment === 'rain-night' ? METAL : VERIFY);
+    drivingWorld.gateMaterial.opacity = next.environment === 'rain-night' ? 0.27 : 0.19;
+    drivingWorld.tailLightMaterial.opacity = next.braking ? 1 : 0.58;
     // 外景保持整车完整；驾驶员、座舱和中控镜头才揭示程序化内饰。
     cabin.visible = next.bodyOpacity < 0.8 || ['cabin', 'console', 'driver', 'gaze', 'cause'].includes(next.camera);
     updateGaze(next);

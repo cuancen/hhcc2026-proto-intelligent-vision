@@ -14,13 +14,13 @@ This prototype demonstrates **L2 combined driving assistance**: lane-level steer
 
 ## Current verified checkpoint
 
-- Full-screen Three.js vehicle digital twin with event-driven rendering and WebGL fallback.
+- Full-screen Three.js vehicle digital twin with a vehicle-anchored procedural road world, three distinct scene cameras, event-driven rendering, and WebGL fallback.
 - Browser-local MediaPipe DMS: EAR, PERCLOS, head pose, eyes-off-road, presence, and six-state emotion classification.
 - Workload and vision fatigue fusion with care and urgent thresholds.
 - Approximately 60-second pausable tour across commute, fatigue, rest, rain-night complexity, recovery, and voice control.
-- Technical Evidence interface exposing perception, reasoning, execution, simulation boundaries, and driver responsibility.
+- Wide three-column Technical Evidence workbench exposing perception, reasoning, execution, simulation boundaries, and driver responsibility.
 - English UI, keyboard control, high contrast, scalable text, reduced-motion support, and camera/simulation fallback.
-- 63 automated regression tests at this checkpoint.
+- 68 automated regression tests at this checkpoint.
 
 ## Run locally
 
