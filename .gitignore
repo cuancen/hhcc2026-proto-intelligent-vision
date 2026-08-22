@@ -12,10 +12,11 @@
 credentials*.json
 secrets*.json
 
-# Dependencies
+# Dependencies and local runtimes
 node_modules/
 .venv/
 venv/
+env/
 __pycache__/
 *.py[cod]
 
@@ -27,13 +28,20 @@ coverage/
 .cache/
 tmp/
 temp/
+artifacts/
+feature-recordings/
 *.log
 
-# Local agent and research state
+# Generated self-hosted MediaPipe runtime (postinstall)
+public/mediapipe-wasm/
+
+# Local research and machine notes (not submission code)
+legacy/
 .agents/
 .codex/
 .codex_tmp/
 .learnings/
+环境安装.txt
 
 # Editors and operating systems
 .vscode/

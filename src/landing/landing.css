@@ -1,0 +1,365 @@
+/* ============================================================
+   EVA Landing · 品牌设计语言（独立于座舱青碧主题）
+   - 极深炭黑底 + 暗红→橙红径向光晕，纯 CSS 渐变，无图片资源
+   - 设计灵感来自 HackHarvard 2024 项目 Garuda 的视觉风格；
+     本文件及全部组件为本团队从零手写（见 AI_USAGE.md）
+   ============================================================ */
+
+.landing {
+  --la-bg: #070a0f;
+  --la-panel: rgba(255, 255, 255, 0.035);
+  --la-line: rgba(255, 150, 100, 0.14);
+  --la-line-strong: rgba(255, 150, 100, 0.32);
+  --la-text: #ffffff;
+  --la-text-soft: #b9b4c8;
+  --la-muted: #8b8699;
+  --la-red: #ff7a3d;
+  --la-orange: #5eead4;
+  --la-gradient: linear-gradient(100deg, var(--la-red), var(--la-orange));
+
+  position: relative;
+  min-height: 100vh;
+  color: var(--la-text);
+  background:
+    radial-gradient(1100px 560px at 72% -6%, rgba(94, 234, 212, 0.11), transparent 62%),
+    radial-gradient(900px 520px at 8% 14%, rgba(255, 122, 61, 0.12), transparent 60%),
+    radial-gradient(1200px 700px at 50% 118%, rgba(255, 122, 61, 0.08), transparent 65%),
+    var(--la-bg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  scroll-behavior: smooth;
+}
+
+body.landing-body {
+  background: var(--la-bg, #0b0e18);
+}
+
+/* ---------- 导航 ---------- */
+
+.la-nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  padding: 16px clamp(18px, 5vw, 56px);
+  background: rgba(11, 14, 24, 0.72);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--la-line);
+}
+
+.la-logo {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  text-decoration: none;
+  color: var(--la-text);
+  margin-right: auto;
+}
+.la-logo b {
+  font-size: 1.22rem;
+  letter-spacing: 0.16em;
+  background: var(--la-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.la-logo span { font-size: 0.72rem; color: var(--la-muted); letter-spacing: 0.08em; }
+
+.la-links { display: flex; gap: 4px; }
+.la-links a {
+  padding: 7px 13px;
+  border-radius: 9px;
+  font-size: 0.86rem;
+  color: var(--la-text-soft);
+  text-decoration: none;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.la-links a:hover { color: var(--la-text); background: rgba(255, 120, 56, 0.1); }
+
+/* ---------- 按钮 ---------- */
+
+.la-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border-radius: 4px;
+  border: none;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
+}
+.la-btn.primary {
+  color: #fff;
+  background: linear-gradient(100deg, #c23a3e, var(--la-orange));
+  box-shadow: 0 6px 22px rgba(255, 100, 60, 0.28);
+}
+.la-btn.primary:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 10px 30px rgba(255, 100, 60, 0.42);
+  filter: brightness(1.06);
+}
+.la-btn.ghost {
+  color: var(--la-text-soft);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--la-line-strong);
+}
+.la-btn.ghost:hover {
+  color: var(--la-text);
+  transform: translateY(-2px);
+  border-color: rgba(255, 150, 100, 0.55);
+}
+.la-btn.small { padding: 7px 16px; font-size: 0.82rem; }
+.la-btn:focus-visible { outline: 2px solid var(--la-orange); outline-offset: 2px; }
+
+/* ---------- Hero ---------- */
+
+.la-hero {
+  display: grid;
+  grid-template-columns: minmax(320px, 5fr) minmax(300px, 4fr);
+  align-items: center;
+  gap: clamp(20px, 4vw, 48px);
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: clamp(44px, 8vh, 96px) clamp(18px, 5vw, 56px) clamp(36px, 6vh, 72px);
+  min-height: calc(88vh - 64px);
+}
+
+.la-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  border-radius: 3px;
+  border: 1px solid var(--la-line-strong);
+  background: rgba(255, 120, 56, 0.07);
+  color: var(--la-text-soft);
+  font-size: 0.76rem;
+  letter-spacing: 0.14em;
+  margin-bottom: 22px;
+}
+.la-kicker i {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--la-orange);
+  box-shadow: 0 0 10px var(--la-orange);
+  animation: laBlink 2.2s ease-in-out infinite;
+}
+@keyframes laBlink { 50% { opacity: 0.35; } }
+
+.la-title {
+  margin: 0 0 18px;
+  font-size: clamp(2.3rem, 5.2vw, 3.9rem);
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+}
+.la-title em {
+  font-style: normal;
+  background: var(--la-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.la-slogan {
+  margin: 0 0 30px;
+  max-width: 34em;
+  color: var(--la-text-soft);
+  font-size: 1.02rem;
+  line-height: 1.75;
+}
+
+.la-cta { display: flex; gap: 14px; flex-wrap: wrap; }
+
+.la-hero-visual {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 380px;
+}
+.la-hero-visual::before {
+  content: '';
+  position: absolute;
+  inset: -8% -6%;
+  background: radial-gradient(closest-side, rgba(255, 120, 56, 0.13), transparent 75%);
+  pointer-events: none;
+}
+
+/* ---------- 区块通用 ---------- */
+
+.la-section {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: clamp(40px, 7vh, 84px) clamp(18px, 5vw, 56px);
+}
+.la-section-head { margin-bottom: 34px; }
+.la-section-head h2 {
+  margin: 0 0 10px;
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  font-weight: 700;
+}
+.la-section-head p { margin: 0; color: var(--la-muted); font-size: 0.92rem; }
+
+/* ---------- 特性卡片 ---------- */
+
+.la-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+.la-card {
+  padding: 24px 22px 22px;
+  border-radius: 8px;
+  border: 1px solid var(--la-line);
+  background:
+    radial-gradient(420px 200px at 85% -20%, rgba(255, 120, 56, 0.1), transparent 70%),
+    var(--la-panel);
+  transition: transform 0.18s ease, border-color 0.18s ease;
+}
+.la-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--la-line-strong);
+}
+.la-card .idx {
+  font-family: ui-monospace, monospace;
+  font-size: 0.74rem;
+  color: var(--la-orange);
+  letter-spacing: 0.12em;
+}
+.la-card h3 { margin: 10px 0 8px; font-size: 1.08rem; }
+.la-card p { margin: 0; color: var(--la-text-soft); font-size: 0.87rem; line-height: 1.7; }
+.la-card .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+.la-card .tags i {
+  font-style: normal;
+  font-size: 0.7rem;
+  padding: 2px 9px;
+  border-radius: 3px;
+  border: 1px solid var(--la-line-strong);
+  color: var(--la-muted);
+}
+
+/* ---------- 演示入口（Run） ---------- */
+
+.la-run {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 22px;
+  padding: 26px 28px;
+  border-radius: 8px;
+  border: 1px solid var(--la-line-strong);
+  background:
+    radial-gradient(600px 260px at 90% 0%, rgba(168, 44, 54, 0.18), transparent 70%),
+    var(--la-panel);
+}
+.la-run h3 { margin: 0 0 6px; font-size: 1.15rem; }
+.la-run p { margin: 0; color: var(--la-text-soft); font-size: 0.88rem; line-height: 1.7; }
+.la-run .scenarios { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.la-run .scenarios i {
+  font-style: normal;
+  font-size: 0.78rem;
+  color: var(--la-text-soft);
+  padding: 4px 12px;
+  border-radius: 3px;
+  border: 1px solid var(--la-line);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* ---------- 数据条 ---------- */
+
+.la-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+}
+.la-stat {
+  text-align: center;
+  padding: 20px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--la-line);
+  background: var(--la-panel);
+}
+.la-stat b {
+  display: block;
+  font-size: 1.7rem;
+  font-weight: 800;
+  background: var(--la-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.la-stat span { font-size: 0.76rem; color: var(--la-muted); letter-spacing: 0.05em; }
+
+/* ---------- About / 页脚 ---------- */
+
+.la-about {
+  color: var(--la-text-soft);
+  font-size: 0.88rem;
+  line-height: 1.8;
+}
+.la-about strong { color: var(--la-text); }
+.la-about ul { margin: 12px 0 0; padding-left: 1.2em; }
+.la-about li { margin-bottom: 6px; }
+
+.la-footer {
+  border-top: 1px solid var(--la-line);
+  padding: 26px clamp(18px, 5vw, 56px) 34px;
+  text-align: center;
+  color: var(--la-muted);
+  font-size: 0.76rem;
+  line-height: 1.9;
+}
+
+/* ---------- 响应式 ---------- */
+
+@media (max-width: 900px) {
+  .la-hero { grid-template-columns: 1fr; }
+  .la-hero-visual { order: -1; min-height: 280px; }
+  .car-model { height: 280px; }
+  .la-run { grid-template-columns: 1fr; }
+  .la-links { display: none; }
+}
+
+/* ---------- Hero 3D 车（GLB + EVA 状态回退） ---------- */
+
+.car-model {
+  position: relative;
+  width: 100%;
+  height: clamp(340px, 46vh, 480px);
+}
+.car-stage {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.9s ease;
+  pointer-events: none;
+}
+.car-stage.on { opacity: 1; }
+.car-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.car-loader {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  padding-top: 4%;
+}
+
+.car-model[data-renderer="unavailable"] .car-loader {
+  background: radial-gradient(circle at center, rgba(255, 122, 61, 0.06), transparent 52%);
+}
+
+@media (max-width: 900px) {
+  /* Keep the hero glow inside the mobile viewport; negative inline insets add a subtle 2 px page overflow. */
+  .la-hero-visual::before { inset: -8% 0; }
+  .car-model { height: 280px; }
+}

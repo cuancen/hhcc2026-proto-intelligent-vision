@@ -1,15 +1,22 @@
 # AI Usage Log
 
-This log records AI tools used during the project, their purpose, the resulting work, and the team's review. Entries must reflect actual use and must not be reconstructed inaccurately after the event.
+This log records AI tools used during the official development period, their purpose, the resulting work, and the team's review. The team owns the product concept and final decisions, and must be able to explain every submitted capability.
 
 | Date | Tool | Purpose | Result | Team review and meaningful modification |
 |---|---|---|---|---|
-| 2026-08-22 | OpenAI Codex | Verify competition rules, compare repository options, and draft the clean repository bootstrap | Repository boundary, ignore rules, and initial compliance documents | Repository separation was approved by the team; all documents require team review before product implementation |
-| 2026-08-22 | OpenAI Codex | Re-check the official handbook and implement the approved milestone Git synchronization policy | `AGENTS.md`, README workflow, and updated decision record | The team reviewed the official basis and explicitly approved the policy before implementation |
+| 2026-08-22 | OpenAI Codex | Verify competition constraints and create a clean public submission repository | Repository boundary, ignore rules, decision log, and milestone Git policy | The team approved a separate official-period repository and milestone-based synchronization |
+| 2026-08-22 | AI coding assistants under team direction | Scaffold and iterate the Vite/React/TypeScript prototype | DOM-free cockpit kernel, MediaPipe DMS pipeline, L2 rules, accessibility, tests, and documentation | The team selected the product direction, thresholds, three scenarios, and L2 responsibility boundary; changes were exercised through tests and live demo review |
+| 2026-08-22 | OpenAI Codex | Merge the latest cockpit kernel with a cinematic vehicle digital-twin presentation | English landing page, Three.js stage, pausable three-act tour, Evidence view, and fallback states | The team rejected the earlier monitor-wall and object-memory story, restored City Commute / Fatigue Guard / Complex Roads, and approved the current visual direction |
+| 2026-08-22 | OpenAI image generation through Codex | Derive an eye-free transparent EVA shell from the team-provided approved EVA reference | `public/eva/eva-shell.png`, used beneath dynamic SVG expressions | The team supplied and authorized the source image, requested the character update, and approved dynamic functional expressions instead of fixed bitmap eyes |
+| 2026-08-22 | OpenAI Codex | Prepare and audit the verified project checkpoint for the public competition repository | Merged official-period commit history, runnable source, compliance records, and reproducible commands | The team explicitly selected `b1207739631-rgb/hhcc-2026-prototype` as the competition repository and requested a rules-compliant landing |
+
+## Design inspiration disclosure
+
+The dark theme, red-orange radial glow, floating vehicle hero, and minimal navigation reference the visual language of the HackHarvard 2024 project **Garuda**. No Garuda source code, components, CSS, animation files, or assets are copied. The implementation and digital-twin behavior in this repository were produced by the team during the official development period.
 
 ## Disclosure principles
 
-- The team owns the core concept and all key project decisions.
-- AI-assisted output must be understood, checked, and meaningfully adapted before submission.
-- New AI tools or materially different uses must be added to this log.
-- Final presentation wording must match the tools and purposes actually used.
+- AI output is reviewed, tested, and meaningfully adapted before submission.
+- New AI tools or materially different uses must be recorded here.
+- Third-party libraries and media are recorded separately in `THIRD_PARTY_NOTICES.md`.
+- Final presentation wording must match this log and must not overstate autonomous-driving capability.

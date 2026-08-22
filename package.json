@@ -1,0 +1,31 @@
+{
+  "name": "geely-eva-cockpit",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Eva 智能座舱 —— 机器视觉驾驶员监测 × L2 辅助驾驶舱内智能体（吉利黑客松 · 原型开发赛道）",
+  "scripts": {
+    "postinstall": "node scripts/copy-wasm.mjs",
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "setup:viz": "node scripts/copy-wasm.mjs"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "^0.10.14",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "three": "^0.185.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@types/three": "^0.185.4",
+    "@vitejs/plugin-react": "^6.1.0",
+    "typescript": "^5.6.2",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11"
+  }
+}
