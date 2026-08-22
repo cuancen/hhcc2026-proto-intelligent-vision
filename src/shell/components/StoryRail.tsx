@@ -3,6 +3,15 @@ import type { DemoCue, DemoTransportState } from '../autoDemo';
 const STAGES = ['COMMUTE', 'FATIGUE', 'COMPLEX'] as const;
 
 const CUE_STAGE: Record<DemoCue, number> = {
+  'oms-cruise': 0,
+  'oms-candidate': 0,
+  'oms-prompt': 0,
+  'oms-correlate': 1,
+  'oms-decide': 1,
+  'oms-urgent': 2,
+  'oms-clear': 2,
+  'oms-verify': 2,
+  'moment-trace': 2,
   commute: 0,
   'fatigue-monitoring': 1,
   'fatigue-care': 1,
@@ -11,6 +20,7 @@ const CUE_STAGE: Record<DemoCue, number> = {
   'complex-roads': 2,
   'conditions-ease': 2,
   'voice-command': 2,
+  'cabin-memory': 1,
   completed: 2,
 };
 

@@ -1,7 +1,7 @@
 # PIPELINE —— 参数表 / 数据流 / 演示剧本
 
 > 参数唯一出处为 `src/core/params.ts` 与 `src/vision/metrics.ts`。修改任何阈值必须：
-> ① `npm test` 回归全绿 ② 同步本表 ③ 手动过一遍 60 秒三幕巡演与三个独立场景。
+> ① `npm test` 回归全绿 ② 同步本表 ③ 手动过一遍五场景 Full Demo 与各独立体验。
 
 ## 一、内核参数表（src/core/params.ts）
 
@@ -23,6 +23,12 @@
 | emotionTh | low 32 / high 68 | 情绪四联动阈值 |
 | cd | care 8 / urgent 15 / emotion 10 / look 1.5 / complex 6 / l2Remind 5 分钟 | 规则冷却 |
 | speedTau | 0.9 分钟 | 速度一阶惯性时间常数 |
+| oms.cruiseSpeedKmh | 72 km/h | OMS 主演示巡航速度 |
+| oms.minConfidence | 0.60 | 低于该值只显示不确定性，不执行车辆动作 |
+| oms.outsideUrgentSec | 0.8s | 车窗外探达到该持续时间后升级 urgent |
+| oms.staleMin | 8s | OMS 超时未更新即 stale，不得当作风险解除 |
+| oms.speedReductionKmh | 20 km/h | L2 开启时的临时目标速度降幅，最低不低于 30 km/h |
+| oms.historyLimit | 20 | Evidence 中保留的 OMS 历史上限 |
 
 ## 二、视觉指标参数（src/vision/metrics.ts）
 
@@ -37,44 +43,41 @@
 ## 三、数据流
 
 ```
-摄像头 ──MediaPipe(本地WASM/GPU)──▶ 478 关键点 + 4×4 变换矩阵
+用户选择的摄像头 / 本地视频 ──MediaPipe(本地WASM/GPU)──▶ 478 关键点 + 4×4 变换矩阵
                                       │ metrics.ts 纯函数
                                       ▼
                      VisionSample{present,perclos,blinkPm,lookAwaySec,yaw,pitch,ear,emotion}
                                       │ act.setVision() ──(模拟信号走同一管线)──▶
                                       ▼
+模拟 OMS 座位语义事件 ────────────────────────────────▶ OmsObservation / source boundary
    工况仿真(sim.ts) ──▶ CockpitState ◀─ 融合: fatigue = max(simFatigue, 185×perclos, lookAway×6)
                                       │ evaRules.ts（冷却闸门 + 场景脚本队列 + 用户分支）
                                       ▼
-                     座舱调节 / 分级告警 / L2 降级恢复 / EVA 单句播报
+                     座舱调节 / 分级告警 / L2 降级恢复 / MomentTrace / EVA 单句播报
                                       │ CockpitState + DemoCue + mood
                                       ▼
                      deriveTwinFrame ──▶ 三维镜头/透明度/DMS 光束/雨夜反馈/EVA 姿态
                                       └─▶ 精简主舞台 + 三列技术证据工作台 + aria-live
 ```
 
-采样节流：真实模型每帧推理、≥100ms 向内核发样；模拟信号 10Hz。内核时钟 100ms 一拍，但只在 `running` 时执行 `step(dt=0.2×速率)`；ready / paused / completed 均冻结时间和路线。
+采样节流：摄像头和本地视频使用同一模型与指标管线，每帧推理、≥100ms 向内核发样；回放信号 10Hz。默认 Full Demo 不请求摄像头权限。内核时钟 100ms 一拍，但只在 `running` 时执行 `step(dt=0.2×速率)`；ready / paused / Evidence-open / completed 均冻结时间和路线。
 
-## 四、自动演示剧本（src/shell/autoDemo.ts，60 秒可暂停单时间轴）
+## 四、正式自动演示（src/shell/fullDemo.ts，约 118 秒可暂停单时间轴）
 
-| 实秒 | 动作 | 预期 |
+| 实秒 | 体验 | 闭环重点 |
 |---|---|---|
-| 0.5 | `commute` | Scene 1：整车广角，欢迎、座舱偏好与常用路线 |
-| 9 | `fatigue-monitoring` | Scene 2：高速 + L2，推进驾驶员与端侧 DMS |
-| 13 | `fatigue-care` | 注入疲劳 62，橙色轻度关怀与座舱调节 |
-| 19 | `fatigue-urgent` | 注入疲劳 88，红色紧急干预与休息选择 |
-| 23 | `fatigue-rest` | 选择立即休息，青色恢复反馈 |
-| 30 | `complex-roads` | Scene 3：雨、夜、拥堵与前车制动协同反馈 |
-| 46 | `conditions-ease` | 回到通勤，服务和座舱状态恢复 |
-| 52 | `voice-command` | 导航自然语言指令，中控镜头 |
-| 58 | `completed` | 镜头拉回整车，三幕完成并在 60 秒冻结 |
+| 0.5–11 | Daily Commute | 常用路线与座舱偏好自动就绪 |
+| 12–35 | Fatigue Guard | DMS/工况融合 → 轻度关怀 → 重度风险 → 休息恢复 |
+| 36–53 | Complex Roads | 雨夜拥堵 → 前车制动 → 谨慎 L2 → 路况恢复 |
+| 54–71 | Cabin Memory | 记住停车卡 → 关联向左下视线 → 给出位置 → 回正验证 |
+| 72–118 | OMS MomentTrace | 右后乘员风险 → DMS×OMS 关联 → 保护动作 → 双信号恢复 → 工件冻结 |
 
-时间轴 API：`pause()` / `resume()` / `restart()` / `stop()`；模型解码或标签页恢复造成的长阻塞不会让多个 cue 同帧跳过。
+完整巡演共 21 个稳定提示，默认使用 `DMS · REPLAY FALLBACK`，无需摄像头权限且无需人工确认即可运行到底。单独选择 OMS MomentTrace 时仍保留真实 DMS 条件闸门和驾驶员确认。时间轴 API：`pause()` / `resume()` / `restart()` / `stop()`；模型解码或标签页恢复造成的长阻塞不会让多个提示挤在同一帧。
 
 ## 五、验证流程（每次改动必做）
 
 ```bash
-npm test          # 68 项：内核 25 + 视觉 13 + shell/交互 30
+npm test          # 85 项：内核、视觉、OMS、时间轴、交互与三维派生
 npm run build     # tsc --noEmit + vite build
-npm run dev       # 手动：9 镜头三幕巡演 + 三个独立场景 + 摄像头/模拟 + 证据抽屉 + EVA 降级
+npm run dev       # 手动：五场景 Full Demo + 各独立体验 + 摄像头/本地视频/回放 + Evidence + EVA 降级
 ```

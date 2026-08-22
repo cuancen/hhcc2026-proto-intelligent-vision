@@ -37,7 +37,7 @@ export default function SystemsRail({
   const perclos = sample ? Math.round(sample.perclos * 100) : null;
   const lookAway = sample?.lookAwaySec ?? null;
   const emotion = sample?.emotion ?? 'neutral';
-  const source = dms.mode === 'model' ? 'CAMERA · LOCAL' : dms.mode === 'sim' ? 'SIMULATED SIGNAL' : 'READY';
+  const source = dms.mode === 'model' ? 'CAMERA · LOCAL' : dms.mode === 'video' ? 'VIDEO · LOCAL' : dms.mode === 'sim' ? 'SIMULATED SIGNAL' : 'READY';
   const evaState = snap.pending ? 'Intervening' : snap.evaMode;
 
   const toggleL2 = () => {
@@ -74,7 +74,7 @@ export default function SystemsRail({
             <button type="button" aria-pressed={dms.mode === 'sim'} onClick={dms.startSim}>SIM</button>
             <button type="button" aria-pressed={dms.mode === 'off'} onClick={dms.stopAll}>OFF</button>
           </div>
-          {dms.status.kind === 'error' && <small className="rail-error">Camera unavailable. Simulation remains available.</small>}
+          {dms.status.kind === 'error' && <small className="rail-error">Camera unavailable. Local video and replay remain available.</small>}
         </section>
         <section className="rail-section">
           <div className="rail-section-title"><span>L2 ASSISTANCE</span><b data-tone={snap.drive.l2Degraded ? 'danger' : snap.drive.auto ? 'verify' : 'normal'}>{snap.drive.l2Degraded ? 'DEGRADED' : snap.drive.auto ? 'ACTIVE' : 'STANDBY'}</b></div>

@@ -1,23 +1,38 @@
 import { createState, stepSim } from './sim';
 import {
   applyScenario,
+  beginMomentTrace,
   beginObjectSearch,
+  clearOms,
+  confirmOmsClear,
   createCtx,
   handleCommand,
   handleReply,
   observeCabinObject,
+  observeOms,
   requestExitCheck,
   runRules,
   setAuto,
+  setMomentTraceDmsMode,
+  setMomentTracePhase,
 } from './evaRules';
-import type { CabinObjectId, CabinObjectObservation, CockpitState, VisionSample } from './types';
+import type {
+  CabinObjectId,
+  CabinObjectObservation,
+  CockpitState,
+  MomentTracePhase,
+  OmsObservation,
+  TraceDmsMode,
+  VisionSample,
+} from './types';
 
 export * from './types';
 export * from './params';
+export * from './oms';
 export { complexityOf, targetSpeedOf } from './sim';
 
 export interface CockpitActions {
-  scenario(id: CockpitState['scenario']): void;
+  scenario(id: CockpitState['scenario'], options?: { announce?: boolean }): void;
   /** 人工注入仿真疲劳（滑杆 0-100） */
   setSimFatigue(v: number): void;
   setRain(on: boolean): void;
@@ -32,6 +47,12 @@ export interface CockpitActions {
   observeCabinObject(observation: CabinObjectObservation): void;
   beginObjectSearch(id: CabinObjectId): void;
   requestExitCheck(): void;
+  beginMomentTrace(mode: TraceDmsMode): void;
+  setMomentTraceDmsMode(mode: TraceDmsMode): void;
+  setMomentTracePhase(phase: MomentTracePhase): void;
+  observeOms(observation: OmsObservation): void;
+  clearOms(): void;
+  confirmOmsClear(): void;
   reset(): void;
 }
 
@@ -57,8 +78,8 @@ export function createCockpit(): Cockpit {
       runRules(ctx, dt);
     },
     actions: {
-      scenario(id) {
-        applyScenario(ctx, id);
+      scenario(id, options) {
+        applyScenario(ctx, id, options);
       },
       setSimFatigue(v) {
         state.driver.simFatigue = Math.min(100, Math.max(0, v));
@@ -93,6 +114,24 @@ export function createCockpit(): Cockpit {
       },
       requestExitCheck() {
         requestExitCheck(ctx);
+      },
+      beginMomentTrace(mode) {
+        beginMomentTrace(ctx, mode);
+      },
+      setMomentTraceDmsMode(mode) {
+        setMomentTraceDmsMode(ctx, mode);
+      },
+      setMomentTracePhase(phase) {
+        setMomentTracePhase(ctx, phase);
+      },
+      observeOms(observation) {
+        observeOms(ctx, observation);
+      },
+      clearOms() {
+        clearOms(ctx);
+      },
+      confirmOmsClear() {
+        confirmOmsClear(ctx);
       },
       reset() {
         const fresh = createState(state.scenario);

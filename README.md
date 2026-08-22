@@ -6,7 +6,7 @@
 
 **Team staging mirror:** [b1207739631-rgb/hhcc-2026-prototype](https://github.com/b1207739631-rgb/hhcc-2026-prototype)
 
-EVA is an explainable in-cabin agent that combines on-device driver monitoring, workload fatigue, cabin actuation, and L2 assistance into one three-act digital-twin demonstration: **City Commute, Fatigue Guard, and Complex Roads**.
+EVA is an explainable in-cabin agent that combines local driver monitoring, semantic occupant monitoring, cabin memory, cabin actuation, and L2 assistance. Its default presentation is one uninterrupted five-experience tour: **Daily Commute → Fatigue Guard → Complex Roads → Cabin Memory → OMS MomentTrace**.
 
 ## Safety positioning
 
@@ -14,13 +14,15 @@ This prototype demonstrates **L2 combined driving assistance**: lane-level steer
 
 ## Current verified checkpoint
 
-- Full-screen Three.js vehicle digital twin with a vehicle-anchored procedural road world, three distinct scene cameras, event-driven rendering, and WebGL fallback.
-- Browser-local MediaPipe DMS: EAR, PERCLOS, head pose, eyes-off-road, presence, and six-state emotion classification.
+- Full-screen Three.js vehicle digital twin with calibrated left-hand-drive occupants, vehicle-anchored road motion, scene-specific cameras, event-driven rendering, and WebGL fallback.
+- Browser-local MediaPipe DMS from an explicitly selected live camera or local video: EAR, PERCLOS, head pose, eyes-off-road, presence, and six-state emotion classification.
+- Simulated semantic OMS with 23 test states, seat-aware risk rules, a guarded L2 response, dual-sensor recovery, and one explainable MomentTrace artifact.
 - Workload and vision fatigue fusion with care and urgent thresholds.
-- Approximately 60-second pausable tour across commute, fatigue, rest, rain-night complexity, recovery, and voice control.
+- Approximately 118-second pausable Full Demo that automatically completes all five experiences; every experience also remains individually selectable.
 - Wide three-column Technical Evidence workbench exposing perception, reasoning, execution, simulation boundaries, and driver responsibility.
-- English UI, keyboard control, high contrast, scalable text, reduced-motion support, and camera/simulation fallback.
-- 68 automated regression tests at this checkpoint.
+- Local-video upload replaces the old simulation button; the default Full Demo uses a clearly labelled replay and never requests camera access by itself.
+- English UI, serialized EVA speech, keyboard control, high contrast, scalable text, reduced-motion support, and explicit sensor fallbacks.
+- 85 automated regression tests at this checkpoint.
 
 ## Run locally
 
@@ -31,7 +33,7 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173`. Select `Run Live Demo` for the automatic three-act tour, or `Enter Dashboard` / `#/cockpit` for manual control.
+Open `http://localhost:5173`. Select `Run Full Demo` for the automatic five-experience tour, or `Enter Dashboard` / `#/cockpit` for manual control.
 
 ```bash
 npm test
@@ -43,12 +45,12 @@ npm run build
 ## Demo controls
 
 - `Space`: start, pause, or continue.
-- `D`: replay the automatic tour.
+- `D`: replay the selected experience or automatic Full Demo.
 - `1`, `2`, `3`: City Commute, Fatigue Guard, or Complex Roads.
 - `L`: toggle L2 assistance.
-- `Evidence`: inspect real/simulated input boundaries and system decisions.
+- `Evidence`: inspect DMS/OMS sources, reasoning, actions, and driver responsibility.
 
-Camera input is processed locally in the browser and is not uploaded. Simulated DMS and driving-environment inputs are visibly identified.
+The Full Demo starts with `DMS · REPLAY FALLBACK`, so it is deterministic and never prompts for camera permission. `Live DMS` and `Upload Video` are optional evidence inputs selected inside Evidence; both are processed locally in the browser and are not uploaded. OMS and the driving environment remain visibly identified simulations.
 
 ## Architecture
 

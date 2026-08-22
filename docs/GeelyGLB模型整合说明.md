@@ -13,7 +13,7 @@
 | 模型会不会太大？ | 原始 24MB 确实太大，已压缩到 **5.03MB**（约 5 倍），浏览器加载无压力 |
 | 用在哪里？ | 首页 Landing Hero 与 `#/cockpit` 全屏整车数字孪生主舞台 |
 | 是吉利官方模型吗？ | **不是**，社区爱好者自制（fan model），对外话术不得声称官方提供 |
-| 整合状态 | ✅ 已完成并验证：68 项测试全绿、构建与完整浏览器闭环通过 |
+| 整合状态 | ✅ 已完成并验证：85 项测试全绿、构建与完整浏览器闭环通过 |
 
 ## 二、合规要点（HHCC 原型赛道）
 
@@ -55,7 +55,7 @@ This static glb asset is used for the landing hero and cockpit digital-twin prot
 |---|---|
 | `public/models/geely.glb` | 压缩后模型（替换了此前被拷入的 24MB 原版） |
 | `src/landing/carScene.ts` | three.js 场景：石墨金属材质覆盖（跳过玻璃/发光件）、RoomEnvironment 反射、品牌轮廓光、贴地软阴影、横纵双向自动取景、约 28 秒自转 + 悬浮、完整 dispose |
-| `src/shell/twin/` | 整车数字孪生：三幕剧情镜头、车身透视、程序化座舱/EVA、DMS 光束、雨夜反馈与 EVA 状态降级 |
+| `src/shell/twin/` | 整车数字孪生：五场景剧情镜头、车身透视、左舵语义人物、DMS/OMS 关联、雨夜反馈与 EVA 状态降级 |
 | `src/landing/CarModel.tsx` | React 包装：动态 import、requestIdleCallback 后加载、EVA 加载/失败状态、交叉淡入、prefers-reduced-motion 静帧 |
 | `src/shared/EvaLoadingAvatar.tsx` | 首页、进舱和驾驶舱共用的动态 EVA 头像状态组件 |
 | `src/landing/Landing.tsx` | Hero 接入 `<CarModel />` + 页脚 CC-BY 署名 |
@@ -74,6 +74,6 @@ This static glb asset is used for the landing hero and cockpit digital-twin prot
 
 ## 六、验证记录（2026-08-22）
 
-- `npm test`：**68/68 全绿**
+- `npm test`：**85/85 全绿**
 - `npm run build`：通过；three.js 独立 chunk（gzip ~164KB），主包不受影响
-- 浏览器实测：Landing 整车可见；座舱 1426×1114 / 1440×1000 / 390×844 无溢出，9 镜头、EVA 降级与完成冻结均通过
+- 浏览器实测：Landing 整车可见；座舱 1426×1114 / 1440×1000 / 390×844 无溢出，五场景 Full Demo、EVA 降级与完成冻结均通过

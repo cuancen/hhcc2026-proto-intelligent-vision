@@ -105,26 +105,11 @@ export default function TwinStage({
       data-environment={frame.environment}
       data-moving={moving ? 'true' : 'false'}
       data-braking={frame.braking ? 'true' : 'false'}
+      data-oms={frame.omsMarker}
+      data-trace={frame.traceArtifact ? 'true' : 'false'}
       style={style}
     >
-      <div className="twin-driving-environment" aria-hidden="true">
-        <div className="twin-depth-streams">
-          {Array.from({ length: 11 }, (_, index) => (
-            <i
-              key={index}
-              style={{
-                '--stream-angle': `${(index - 5) * 4.1}deg`,
-                '--stream-delay': `${index * -0.12}s`,
-              } as CSSProperties}
-            />
-          ))}
-        </div>
-        <div className="twin-road-gates">
-          {Array.from({ length: 8 }, (_, index) => (
-            <i key={index} style={{ '--gate-delay': `${index * -0.22}s` } as CSSProperties} />
-          ))}
-        </div>
-      </div>
+      <div className="twin-driving-environment" aria-hidden="true" />
       {rendererState !== 'three' && (
         <div className="twin-loader">
           <EvaLoadingAvatar

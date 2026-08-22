@@ -4,15 +4,25 @@ import type { DemoCue } from '../autoDemo';
 import EvaAvatar from '../../shared/EvaAvatar';
 import type { EvaExpression } from '../../shared/evaExpression';
 import CinemaIcon from './CinemaIcon';
+import type { ExperienceId } from './CinemaControls';
 
 const TRANSPORT_LABEL: Record<DemoTransportState, string> = {
   ready: 'READY',
-  running: 'TOUR RUNNING',
+  running: 'DEMO RUNNING',
   paused: 'SCENE FROZEN',
-  completed: 'TOUR COMPLETE',
+  completed: 'DEMO COMPLETE',
 };
 
-const ACT_BY_CUE: Record<DemoCue, number> = {
+const PHASE_BY_CUE: Record<DemoCue, number> = {
+  'oms-cruise': 0,
+  'oms-candidate': 0,
+  'oms-prompt': 0,
+  'oms-correlate': 1,
+  'oms-decide': 2,
+  'oms-urgent': 3,
+  'oms-clear': 3,
+  'oms-verify': 4,
+  'moment-trace': 4,
   commute: 0,
   'fatigue-monitoring': 1,
   'fatigue-care': 1,
@@ -21,8 +31,20 @@ const ACT_BY_CUE: Record<DemoCue, number> = {
   'complex-roads': 2,
   'conditions-ease': 2,
   'voice-command': 2,
-  completed: 2,
+  'cabin-memory': 2,
+  completed: 4,
 };
+
+export function progressPhaseOf(experience: ExperienceId, step: DemoStep | null, cue: DemoCue | null): number {
+  if (experience === 'full-demo' && step) {
+    if (step.i <= 2) return 0;
+    if (step.i <= 6) return 1;
+    if (step.i <= 9) return 2;
+    if (step.i <= 12) return 3;
+    return 4;
+  }
+  return cue ? PHASE_BY_CUE[cue] : -1;
+}
 
 export default function CockpitHeader({
   snap,
@@ -30,6 +52,7 @@ export default function CockpitHeader({
   cue,
   expression,
   transport,
+  experience,
   onOpenEvidence,
 }: {
   snap: CockpitState;
@@ -37,8 +60,10 @@ export default function CockpitHeader({
   cue: DemoCue | null;
   expression: EvaExpression;
   transport: DemoTransportState;
+  experience: ExperienceId;
   onOpenEvidence: () => void;
 }) {
+  const currentPhase = progressPhaseOf(experience, step, cue);
   return (
     <header className="cinema-header">
       <a className="cinema-brand" href="#/" aria-label="Return to the EVA home page">
@@ -48,11 +73,10 @@ export default function CockpitHeader({
 
       <div className="cinema-chapter" aria-live="polite">
         <small>{step ? `${String(step.i).padStart(2, '0')} / ${String(step.total).padStart(2, '0')}` : TRANSPORT_LABEL[transport]}</small>
-        <strong>{step?.title ?? 'Vehicle digital twin ready'}</strong>
-        <div className="cinema-act-progress" aria-label="Three-act progress">
-          {[0, 1, 2].map((act) => {
-            const current = cue ? ACT_BY_CUE[cue] : -1;
-            return <i key={act} data-state={act < current ? 'done' : act === current ? 'active' : 'idle'} />;
+        <strong>{step?.title ?? 'EVA experience ready'}</strong>
+        <div className="cinema-act-progress" aria-label="Experience progress">
+          {[0, 1, 2, 3, 4].map((phase) => {
+            return <i key={phase} data-state={phase < currentPhase ? 'done' : phase === currentPhase ? 'active' : 'idle'} />;
           })}
         </div>
       </div>

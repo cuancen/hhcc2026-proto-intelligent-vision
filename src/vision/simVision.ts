@@ -24,6 +24,13 @@ export function simulatedEarAt(elapsedSec: number, fatigue: number): number {
   return phase < closeDur ? 0.06 : 0.3 + Math.sin(elapsedSec * 1.3) * 0.02;
 }
 
+/** 回放 DMS 只在关联中或风险仍存在的执行阶段看向右后；OMS 清除后立即回正。 */
+export function shouldReplayLookAway(s: CockpitState): boolean {
+  return s.scenario === 'cabin-safety'
+    && (['correlate', 'decide'].includes(s.momentTrace.phase)
+      || (s.momentTrace.phase === 'act' && s.oms.active !== null));
+}
+
 export function startSimVision(
   getState: () => CockpitState,
   onSample: (s: VisionSample) => void,
@@ -64,18 +71,25 @@ export function startSimVision(
     const ear = simulatedEarAt(t - t0, fatigue);
 
     // 视线离开事件：情境闭环演示期间由语义状态确定性驱动，其余场景保留随机回退。
-    const guidedAway = contextPhase === 'searching'
+    const traceAway = shouldReplayLookAway(s);
+    const traceStoryActive = s.scenario === 'cabin-safety'
+      && !['ready', 'completed'].includes(s.momentTrace.phase);
+    const guidedAway = traceAway || contextPhase === 'searching'
       || (contextPhase === 'assisting' && t - contextPhaseAt < 0.8);
     const contextStoryActive = ['observed', 'searching', 'assisting'].includes(contextPhase);
     let looking = false;
     let yaw = Math.sin(t * 0.8) * 4;
     let pitch = Math.sin(t * 0.6) * 3;
 
-    if (guidedAway) {
+    if (traceAway) {
+      looking = true;
+      yaw = 34;
+      pitch = 6;
+    } else if (guidedAway) {
       looking = true;
       yaw = -34;
       pitch = 8;
-    } else if (!contextStoryActive) {
+    } else if (!contextStoryActive && !traceStoryActive) {
       const risky = s.scenario === 'complex' || fatigue > 60;
       if (t >= nextAwayAt && awayUntil < t) {
         awayUntil = t + (risky ? 2.4 + Math.random() * 2.4 : 1.6 + Math.random() * 1.4);

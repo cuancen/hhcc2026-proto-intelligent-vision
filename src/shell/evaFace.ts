@@ -46,6 +46,15 @@ export function deriveMood(
 }
 
 const CUE_EXPRESSION: Partial<Record<DemoCue, EvaExpression>> = {
+  'oms-cruise': 'calm',
+  'oms-candidate': 'listening',
+  'oms-prompt': 'listening',
+  'oms-correlate': 'thinking',
+  'oms-decide': 'cautious',
+  'oms-urgent': 'urgent',
+  'oms-clear': 'caring',
+  'oms-verify': 'confirming',
+  'moment-trace': 'confirming',
   commute: 'calm',
   'fatigue-monitoring': 'thinking',
   'fatigue-care': 'caring',
@@ -54,6 +63,7 @@ const CUE_EXPRESSION: Partial<Record<DemoCue, EvaExpression>> = {
   'complex-roads': 'cautious',
   'conditions-ease': 'confirming',
   'voice-command': 'listening',
+  'cabin-memory': 'thinking',
   completed: 'confirming',
 };
 
@@ -76,7 +86,7 @@ export function deriveEvaExpression(
   driverEmotion: EmotionId,
   transport: DemoTransportState,
 ): EvaExpression {
-  if (mood === 'urgent' || cue === 'fatigue-urgent') return 'urgent';
+  if (mood === 'urgent' || cue === 'fatigue-urgent' || cue === 'oms-urgent') return 'urgent';
   const fromCue = cue ? CUE_EXPRESSION[cue] : undefined;
   if (fromCue) return fromCue;
   if (transport === 'completed') return 'confirming';

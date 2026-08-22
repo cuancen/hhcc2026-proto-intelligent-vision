@@ -30,6 +30,7 @@ tmp/
 temp/
 artifacts/
 feature-recordings/
+.qa/
 *.log
 
 # Generated self-hosted MediaPipe runtime (postinstall)

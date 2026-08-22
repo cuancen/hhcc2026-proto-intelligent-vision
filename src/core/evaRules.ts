@@ -6,9 +6,13 @@ import type {
   CockpitState,
   ContextStage,
   EmotionId,
+  MomentTracePhase,
+  OmsObservation,
   PendingChoice,
+  TraceDmsMode,
 } from './types';
 import { complexityOf, fuseFatigue } from './sim';
+import { classifyOmsRisk, createMomentTraceState, createOmsState } from './oms';
 
 export interface EvaCtx {
   s: CockpitState;
@@ -16,7 +20,7 @@ export interface EvaCtx {
   cd: Record<string, number>;
   /** 场景脚本队列：[触发时刻, 回调] */
   q: [number, () => void][];
-  ids: { chat: number; alert: number; context: number };
+  ids: { chat: number; alert: number; context: number; oms: number };
   flags: {
     complexActive: boolean;
     musicBeforeBlock: CockpitState['cabin']['music'];
@@ -30,7 +34,7 @@ export function createCtx(s: CockpitState): EvaCtx {
     s,
     cd: {},
     q: [],
-    ids: { chat: 1, alert: 1, context: 1 },
+    ids: { chat: 1, alert: 1, context: 1, oms: 1 },
     flags: {
       complexActive: false,
       musicBeforeBlock: 'Soft',
@@ -114,14 +118,137 @@ export function requestExitCheck(ctx: EvaCtx) {
   ctx.s.context.resolved = false;
 }
 
+export function beginMomentTrace(ctx: EvaCtx, dmsMode: TraceDmsMode) {
+  const s = ctx.s;
+  s.momentTrace = {
+    phase: 'perceive',
+    dmsMode,
+    record: {
+      createdAt: round1(s.t),
+      sources: {
+        dms: dmsMode === 'live' ? 'live-local' : dmsMode,
+        oms: 'simulated-oms',
+      },
+      input: { dms: s.driver.vision ? structuredClone(s.driver.vision) : null, oms: null },
+      decision: '',
+      actions: [],
+      verification: { omsClear: false, dmsForward: false, driverConfirmed: false },
+    },
+  };
+}
+
+export function setMomentTraceDmsMode(ctx: EvaCtx, mode: TraceDmsMode) {
+  ctx.s.momentTrace.dmsMode = mode;
+  if (ctx.s.momentTrace.record) {
+    ctx.s.momentTrace.record.sources.dms = mode === 'live' ? 'live-local' : mode;
+  }
+}
+
+export function setMomentTracePhase(ctx: EvaCtx, phase: MomentTracePhase) {
+  const s = ctx.s;
+  s.momentTrace.phase = phase;
+  const record = s.momentTrace.record;
+  if (!record) return;
+  if (['correlate', 'decide', 'act'].includes(phase)) {
+    record.input.dms = s.driver.vision ? structuredClone(s.driver.vision) : null;
+    record.input.oms = s.oms.active ? structuredClone(s.oms.active) : record.input.oms;
+  }
+  if (phase === 'decide') {
+    record.decision = 'The driver is responding to a rear-right occupant risk, not fatigue or unexplained distraction.';
+  }
+  if (phase === 'act') {
+    record.actions = s.drive.auto
+      ? ['Targeted rear-right warning', 'L2 speed reduction', 'Extended following gap', 'Driver confirmation required']
+      : ['Targeted rear-right warning', 'Driver confirmation required'];
+  }
+  if (phase === 'verify') {
+    record.verification.omsClear = s.oms.active === null;
+    const vision = s.driver.vision;
+    record.verification.dmsForward = !!vision?.present
+      && vision.lookAwaySec < 0.1
+      && Math.abs(vision.yaw) <= 22
+      && Math.abs(vision.pitch) <= 18;
+  }
+  if (phase === 'artifact' && !record.verification.driverConfirmed) {
+    record.verification.driverConfirmed = !s.oms.awaitingConfirmation;
+  }
+  if (phase === 'artifact') s.stats.momentTraces += 1;
+}
+
+/** 接受透明标注的 OMS 语义事件，并把风险分类与 L2 策略写回同一领域状态。 */
+export function observeOms(ctx: EvaCtx, observation: OmsObservation) {
+  const s = ctx.s;
+  const normalized: OmsObservation = {
+    ...observation,
+    confidence: Math.min(1, Math.max(0, observation.confidence)),
+    durationSec: Math.max(0, observation.durationSec),
+    source: 'simulated-oms',
+    observedAt: round1(s.t),
+  };
+  const risk = classifyOmsRisk(normalized, { speed: s.drive.speed, roadComplexity: complexityOf(s) });
+  s.oms.active = normalized;
+  s.oms.risk = risk;
+  s.oms.stale = false;
+  s.oms.lastUpdatedAt = s.t;
+  s.oms.awaitingConfirmation = false;
+  s.oms.history.push({ ...normalized, id: ctx.ids.oms++, risk });
+  if (s.oms.history.length > P.oms.historyLimit) s.oms.history.splice(0, s.oms.history.length - P.oms.historyLimit);
+  s.stats.omsEvents += 1;
+  if (s.momentTrace.record) s.momentTrace.record.input.oms = structuredClone(normalized);
+
+  if (risk === 'urgent') {
+    s.stats.omsUrgent += 1;
+    if (s.drive.auto) {
+      s.oms.response.active = true;
+      s.oms.response.speedCapKmh = Math.max(P.oms.minimumSpeedCapKmh, Math.round(s.drive.speed - P.oms.speedReductionKmh));
+      s.oms.response.followingGap = 'extended';
+      s.drive.l2Degraded = true;
+      alert(ctx, 'urgent', 'Rear-right occupant outside the window — protective L2 speed and headway strategy active.');
+      say(ctx, 'urg', 'Rear-right passenger, please move fully inside. I am reducing speed and extending the following distance while the driver keeps supervising the road.');
+    } else {
+      alert(ctx, 'urgent', 'Rear-right occupant outside the window — driver action required.');
+      say(ctx, 'urg', 'Rear-right passenger, please move fully inside. Driver, reduce speed when safe and keep full control of the vehicle.');
+    }
+  } else if (risk === 'warning') {
+    alert(ctx, 'warn', 'Possible rear-right occupant window risk — monitoring duration before escalation.');
+    say(ctx, 'warn', 'I have detected movement toward the rear-right window. Please check that area while continuing to supervise the road.');
+  }
+}
+
+export function clearOms(ctx: EvaCtx) {
+  const s = ctx.s;
+  const requiresDriverConfirmation = s.oms.risk === 'urgent' || s.oms.response.active;
+  s.oms.active = null;
+  s.oms.risk = 'none';
+  s.oms.stale = false;
+  s.oms.lastUpdatedAt = null;
+  // 车辆是否执行 L2 动作不改变闭环要求：紧急 OMS 事件恢复后仍需驾驶员明确确认。
+  s.oms.awaitingConfirmation = requiresDriverConfirmation;
+  if (s.momentTrace.record) s.momentTrace.record.verification.omsClear = true;
+  alert(ctx, 'info', 'OMS confirms the rear-right occupant is fully inside the cabin.');
+  say(ctx, 'care', 'The rear-right passenger is back inside. I am checking that your attention is forward before releasing the protective strategy.');
+}
+
+export function confirmOmsClear(ctx: EvaCtx) {
+  const s = ctx.s;
+  if (!s.oms.awaitingConfirmation && !s.oms.response.active) return;
+  s.oms.awaitingConfirmation = false;
+  s.oms.response = { active: false, speedCapKmh: null, followingGap: 'normal' };
+  s.drive.l2Degraded = false;
+  if (s.momentTrace.record) s.momentTrace.record.verification.driverConfirmed = true;
+  alert(ctx, 'info', 'Driver confirmed safe — protective strategy released.');
+  say(ctx, 'care', 'Safety confirmed. Both OMS and DMS show recovery, so the temporary protection is now released.');
+}
+
 /* ------------------------------------------------------------------ */
 /* 场景脚本                                                            */
 /* ------------------------------------------------------------------ */
 
 const fmtEta = (s: CockpitState) => Math.round((s.drive.routeKm / 45) * 60 + 8);
 
-export function applyScenario(ctx: EvaCtx, id: CockpitState['scenario']) {
+export function applyScenario(ctx: EvaCtx, id: CockpitState['scenario'], options: { announce?: boolean } = {}) {
   const s = ctx.s;
+  const announce = options.announce !== false;
   // 复位场景相关状态（保留对话与统计）
   s.scenario = id;
   s.drive.rain = false;
@@ -131,6 +258,8 @@ export function applyScenario(ctx: EvaCtx, id: CockpitState['scenario']) {
   s.drive.l2Degraded = false;
   s.cabin.entertainmentBlocked = false;
   s.cabin.readingLight = 'Off';
+  s.oms = createOmsState();
+  s.momentTrace = createMomentTraceState();
   ctx.flags.complexActive = false;
   ctx.q = [];
   // 脚本时刻基于当前 t 顺延，避免中途切换场景时多条播报挤在同一拍
@@ -142,16 +271,16 @@ export function applyScenario(ctx: EvaCtx, id: CockpitState['scenario']) {
     s.drive.routeKm = 12.6;
     s.driver.simFatigue = Math.min(s.driver.simFatigue, 18);
     at(0.2, () => {
-      say(ctx, 'care', 'Good morning! Welcome aboard — face recognition confirms it is you. Traffic looks clear today.');
+      if (announce) say(ctx, 'care', 'Good morning. Welcome back. Traffic is clear and your usual route is ready.');
       s.stats.proact++;
     });
-    at(0.7, () => {
+    at(0.8, () => {
       adjust(ctx, () => { s.cabin.temp = 22.5; s.cabin.ambient = 'Teal'; s.cabin.music = 'Soft'; s.cabin.fan = 1; });
-      say(ctx, 'care', 'Cabin set to your preferences: 22.5°C, teal ambient light, soft music.');
+      if (announce) say(ctx, 'care', 'Your cabin is set: 22.5 degrees, teal light, and soft music.');
       s.stats.proact++;
     });
-    at(1.4, () => {
-      say(ctx, 'care', `Usual route planned — ${s.drive.routeKm.toFixed(1)} km in total, about ${fmtEta(s)} minutes to arrive.`);
+    at(1.6, () => {
+      if (announce) say(ctx, 'care', `Your usual route is planned. It will take about ${fmtEta(s)} minutes to arrive.`);
       s.stats.proact++;
     });
   }
@@ -162,7 +291,7 @@ export function applyScenario(ctx: EvaCtx, id: CockpitState['scenario']) {
     s.drive.routeKm = 96;
     s.driver.simFatigue = Math.max(s.driver.simFatigue, 42);
     at(0.3, () => {
-      say(ctx, 'sys', 'Long highway drive: Eva has strengthened vision monitoring (blink rate / PERCLOS / head pose). L2 assisted driving active — please stay in supervision.');
+      if (announce) say(ctx, 'sys', 'Highway monitoring is active. I am watching blink rate, PERCLOS, and head pose while you remain in control.');
     });
   }
 
@@ -172,20 +301,32 @@ export function applyScenario(ctx: EvaCtx, id: CockpitState['scenario']) {
     s.drive.routeKm = 29.4;
     at(0.3, () => {
       s.drive.rain = true;
-      say(ctx, 'sys', 'Rain sensor: wipers on automatically, visibility dropping — target speed adjusted accordingly.');
+      if (announce) say(ctx, 'sys', 'Rain detected. Wipers are on, and the target speed is easing down.');
       s.stats.proact++;
     });
     at(1.2, () => {
       s.drive.road = 'congested';
       alert(ctx, 'warn', 'Congestion ahead — merging into slow traffic.');
     });
-    at(2.2, () => {
+    at(1.9, () => {
       s.drive.night = true;
-      say(ctx, 'sys', 'Entering rainy-night conditions: headlights and cluster switched to night theme.');
     });
-    at(4.2, () => {
+    at(2.4, () => {
       s.drive.leadBrake = true;
       alert(ctx, 'warn', 'Lead vehicle braking hard — L2 slowed down in advance.');
+    });
+  }
+
+  if (id === 'cabin-safety') {
+    s.drive.road = 'highway';
+    s.drive.auto = true;
+    s.drive.speed = 72;
+    s.drive.targetSpeed = 72;
+    s.drive.routeKm = 38.4;
+    s.driver.simFatigue = Math.min(s.driver.simFatigue, 18);
+    s.driver.resting = false;
+    at(0.2, () => {
+      if (announce) say(ctx, 'sys', 'OMS MomentTrace is ready. DMS stays local, OMS events are simulated, and the driver remains responsible.');
     });
   }
 }
@@ -313,6 +454,8 @@ export function handleReply(ctx: EvaCtx, key: string) {
 /* ------------------------------------------------------------------ */
 
 function evaModeOf(s: CockpitState, complexActive: boolean): CockpitState['evaMode'] {
+  if (s.oms.risk === 'urgent' || s.oms.response.active) return 'Intervening';
+  if (s.oms.risk === 'warning') return 'Cautious';
   if (s.drive.l2Degraded) return 'Intervening';
   if (s.context.phase === 'assisting') return 'Intervening';
   if (s.context.phase === 'searching') return 'Guarding';
@@ -333,11 +476,17 @@ export function runRules(ctx: EvaCtx, dt: number) {
 
   const v = s.driver.vision;
 
+  if (s.oms.active && s.oms.lastUpdatedAt !== null && s.t - s.oms.lastUpdatedAt >= P.oms.staleMin) {
+    s.oms.stale = true;
+  }
+
   // 2) Context loop: link eyes-off-road evidence to semantic memory, act on the cause, then verify recovery.
   const target = s.context.targetId
     ? s.context.memory.find((item) => item.id === s.context.targetId && item.present)
     : undefined;
-  let contextOwnsLookAway = s.context.phase === 'assisting' && !!target;
+  const traceOwnsLookAway = s.scenario === 'cabin-safety'
+    && ['correlate', 'decide', 'act', 'verify'].includes(s.momentTrace.phase);
+  let contextOwnsLookAway = (s.context.phase === 'assisting' && !!target) || traceOwnsLookAway;
 
   if (v?.present && s.context.phase === 'searching' && target && v.lookAwaySec >= P.lookAwayTh.warnSec) {
     contextOwnsLookAway = true;
@@ -381,14 +530,14 @@ export function runRules(ctx: EvaCtx, dt: number) {
   }
 
   // 3) Eyes-off-road guard: generic escalation remains active outside a known context loop.
-  if (v && v.present) {
+  if (v && v.present && !traceOwnsLookAway) {
     if (v.lookAwaySec >= P.lookAwayTh.escSec) {
       if (!s.drive.l2Degraded) {
         s.drive.l2Degraded = true;
         alert(ctx, 'urgent', 'Sustained eyes off the road — L2 degraded: lower target speed and longer headway. Look ahead immediately.');
         say(ctx, 'urg', 'Your eyes have been off the road for over 4 seconds — I have reduced speed and extended the following distance. Please look back at the road now.');
       }
-    } else if (s.drive.l2Degraded && v.lookAwaySec < 0.5) {
+    } else if (s.drive.l2Degraded && !s.oms.response.active && !s.oms.awaitingConfirmation && v.lookAwaySec < 0.5) {
       s.drive.l2Degraded = false;
       alert(ctx, 'info', 'Attention recovered — L2 restored to normal strategy.');
     }

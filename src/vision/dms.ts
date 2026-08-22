@@ -31,9 +31,13 @@ export type DmsStatus =
 
 export interface DmsEngine {
   status: DmsStatus;
-  start(video: HTMLVideoElement): Promise<void>;
+  start(video: HTMLVideoElement, input?: DmsMediaInput): Promise<void>;
   stop(): void;
 }
+
+export type DmsMediaInput =
+  | { kind: 'camera' }
+  | { kind: 'video'; url: string };
 
 export interface DmsCallbacks {
   onStatus(st: DmsStatus): void;
@@ -63,6 +67,8 @@ export async function createDmsEngine(cb: DmsCallbacks): Promise<DmsEngine> {
   let videoEl: HTMLVideoElement | null = null;
   let loopId = 0;
   let running = false;
+  let active = false;
+  let inputKind: DmsMediaInput['kind'] | null = null;
 
   const setStatus = (st: DmsStatus) => {
     status = st;
@@ -74,23 +80,47 @@ export async function createDmsEngine(cb: DmsCallbacks): Promise<DmsEngine> {
       return status;
     },
 
-    async start(video: HTMLVideoElement) {
-      setStatus({ kind: 'loading', detail: 'Requesting camera…' });
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 640, height: 480, facingMode: 'user' },
-        audio: false,
-      });
+    async start(video: HTMLVideoElement, input: DmsMediaInput = { kind: 'camera' }) {
+      active = true;
+      inputKind = input.kind;
       videoEl = video;
-      video.srcObject = stream;
-      await video.play();
+      video.muted = true;
+      video.playsInline = true;
 
-      setStatus({ kind: 'loading', detail: 'Loading vision model (local source first)…' });
+      if (input.kind === 'camera') {
+        setStatus({ kind: 'loading', detail: 'Requesting camera…' });
+        const requestedStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 640, height: 480, facingMode: 'user' },
+          audio: false,
+        });
+        if (!active) {
+          requestedStream.getTracks().forEach((track) => track.stop());
+          throw new Error('DMS start cancelled');
+        }
+        stream = requestedStream;
+        video.removeAttribute('src');
+        video.srcObject = stream;
+        video.controls = false;
+        video.loop = false;
+      } else {
+        setStatus({ kind: 'loading', detail: 'Opening local video…' });
+        video.srcObject = null;
+        video.src = input.url;
+        video.controls = true;
+        video.loop = true;
+      }
+      await video.play();
+      if (!active) throw new Error('DMS start cancelled');
+
+      setStatus({ kind: 'loading', detail: 'Loading on-device vision model…' });
       const vision = await import('@mediapipe/tasks-vision');
+      if (!active) throw new Error('DMS start cancelled');
       const fileset = await firstOk(
         WASM_SOURCES,
         (p) => vision.FilesetResolver.forVisionTasks(p),
         'WASM runtime',
       );
+      if (!active) throw new Error('DMS start cancelled');
 
       const tryCreate = (delegate: 'GPU' | 'CPU') =>
         firstOk(
@@ -110,6 +140,11 @@ export async function createDmsEngine(cb: DmsCallbacks): Promise<DmsEngine> {
         landmarker = await tryCreate('GPU');
       } catch {
         landmarker = await tryCreate('CPU');
+      }
+      if (!active) {
+        landmarker.close();
+        landmarker = null;
+        throw new Error('DMS start cancelled');
       }
 
       // 指标追踪器（与模拟信号共用同一套纯函数管线）
@@ -172,13 +207,25 @@ export async function createDmsEngine(cb: DmsCallbacks): Promise<DmsEngine> {
     },
 
     stop() {
+      active = false;
       running = false;
       cancelAnimationFrame(loopId);
       stream?.getTracks().forEach((t) => t.stop());
       stream = null;
       landmarker?.close();
       landmarker = null;
+      if (videoEl) {
+        videoEl.pause();
+        videoEl.srcObject = null;
+        if (inputKind === 'video') {
+          videoEl.removeAttribute('src');
+          videoEl.load();
+        }
+        videoEl.controls = false;
+        videoEl.loop = false;
+      }
       videoEl = null;
+      inputKind = null;
       cb.onLandmarks(null);
       setStatus({ kind: 'idle' });
     },

@@ -1,15 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent, RefObject } from 'react';
-import { complexityOf, P } from '../../core';
-import type { CockpitActions, CockpitState, EmotionId, VisionSample } from '../../core';
+import { complexityOf, OMS_BEHAVIORS, P } from '../../core';
+import type { CockpitActions, CockpitState, EmotionId, OmsBehavior, OmsSeat, VisionSample } from '../../core';
 import type { DmsStatus } from '../../vision/dms';
 import type { DmsMode } from '../hooks/useDms';
+import type { LocalDmsVideo } from '../hooks/useDms';
+import { formatLocalVideoSize } from '../localVideo';
 import CinemaIcon from './CinemaIcon';
 
 const SOURCE_LABEL: Record<DmsMode, string> = {
   off: 'DMS not active',
   model: 'Live camera · on-device',
+  video: 'Local video · on-device',
   sim: 'Simulated DMS signal',
+  replay: 'DMS replay fallback',
 };
 
 const ALERT_LABEL = { info: 'INFO', warn: 'WARNING', urgent: 'URGENT' } as const;
@@ -25,6 +29,9 @@ function Metric({ label, value, tone = 'normal' }: { label: string; value: strin
   return <div className="evidence-metric" data-tone={tone}><span>{label}</span><b>{value}</b></div>;
 }
 
+const OMS_SEATS: OmsSeat[] = ['driver', 'front-passenger', 'rear-left', 'rear-right'];
+const humanize = (value: string) => value.replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+
 export default function EvidenceDrawer({
   open,
   onClose,
@@ -33,6 +40,7 @@ export default function EvidenceDrawer({
   refresh,
   dms,
   prefs,
+  onConfirmSafety,
 }: {
   open: boolean;
   onClose: () => void;
@@ -43,10 +51,14 @@ export default function EvidenceDrawer({
     mode: DmsMode;
     status: DmsStatus;
     sample: VisionSample | null;
+    localVideo: LocalDmsVideo | null;
+    inputError: string | null;
     videoRef: RefObject<HTMLVideoElement>;
     canvasRef: RefObject<HTMLCanvasElement>;
-    startModel: () => Promise<void>;
+    startModel: () => Promise<boolean>;
+    startVideo: (file: File) => Promise<boolean>;
     startSim: () => void;
+    startReplay: () => void;
     stopAll: () => void;
   };
   prefs: {
@@ -57,10 +69,16 @@ export default function EvidenceDrawer({
     voice: boolean;
     toggleVoice: () => void;
   };
+  onConfirmSafety: () => void;
 }) {
   const [command, setCommand] = useState('');
+  const [omsBehavior, setOmsBehavior] = useState<OmsBehavior>('head-outside-window');
+  const [omsSeat, setOmsSeat] = useState<OmsSeat>('rear-right');
+  const [omsConfidence, setOmsConfidence] = useState(0.9);
+  const [omsDuration, setOmsDuration] = useState(1.2);
   const drawerRef = useRef<HTMLElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
   const wasOpenRef = useRef(false);
 
@@ -90,13 +108,19 @@ export default function EvidenceDrawer({
     ? Math.min(100, Math.max(P.perclosFatigueK * sample.perclos, Math.min(P.lookAwayFatigueCap, sample.lookAwaySec * 6)))
     : 0;
   const roadComplexity = complexityOf(snap);
-  const decision = snap.driver.fatigue >= P.fatigueTh.urgent
+  const traceDecision = snap.momentTrace.record?.decision;
+  const decision = traceDecision
+    || (snap.oms.risk === 'urgent'
+      ? 'Rear-right occupant risk · urgent response'
+      : snap.oms.risk === 'warning'
+        ? 'Rear-right occupant event · duration check'
+        : snap.driver.fatigue >= P.fatigueTh.urgent
     ? 'Urgent fatigue intervention'
     : snap.driver.fatigue >= P.fatigueTh.care
       ? 'Gentle fatigue care'
       : roadComplexity >= P.complexityBlock
         ? 'Coordinated cautious mode'
-        : 'Monitoring within normal range';
+        : 'Monitoring within normal range');
 
   const submitCommand = (event: FormEvent) => {
     event.preventDefault();
@@ -109,6 +133,31 @@ export default function EvidenceDrawer({
   const setAuto = () => {
     act.setAuto(!snap.drive.auto);
     refresh();
+  };
+
+  const injectOms = () => {
+    act.observeOms({
+      behavior: omsBehavior,
+      seat: omsSeat,
+      confidence: omsConfidence,
+      durationSec: omsDuration,
+      source: 'simulated-oms',
+      observedAt: 0,
+    });
+    refresh();
+  };
+
+  const clearOms = () => {
+    act.clearOms();
+    refresh();
+  };
+
+  const chooseVideo = () => fileInputRef.current?.click();
+
+  const loadVideo = (file: File | undefined) => {
+    if (!file) return;
+    void dms.startVideo(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   return (
@@ -148,8 +197,10 @@ export default function EvidenceDrawer({
 
         <div className="evidence-boundary-card">
           <div><span>DMS SOURCE</span><b>{SOURCE_LABEL[dms.mode]}</b></div>
+          <div><span>OMS SOURCE</span><b>Simulated semantic event</b></div>
           <div><span>DRIVING ENVIRONMENT</span><b>Simulated vehicle state</b></div>
-          <p>The driver camera can run live and is processed only in this browser. Workload, weather and road events are transparently simulated for the prototype.</p>
+          <div><span>VEHICLE CONFIGURATION</span><b>Left-hand drive · driver front left</b></div>
+          <p>Live camera and selected video frames stay inside this browser. OMS and the driving environment are transparently simulated; no raw cabin video is uploaded or stored.</p>
         </div>
 
         <div className="evidence-scroll">
@@ -160,24 +211,46 @@ export default function EvidenceDrawer({
               <h3>Driver Monitoring</h3>
               <span data-state={dms.mode}>{dms.status.kind === 'loading' ? 'Loading model' : SOURCE_LABEL[dms.mode]}</span>
             </div>
-            <div className="evidence-video">
-              <video ref={dms.videoRef} playsInline muted style={{ display: dms.mode === 'model' ? 'block' : 'none' }} aria-label="Driver camera feed" />
-              <canvas ref={dms.canvasRef} style={{ display: dms.mode === 'model' ? 'block' : 'none' }} aria-hidden="true" />
-              {dms.mode !== 'model' && (
+            <div className="evidence-video" data-source={dms.mode}>
+              <video
+                ref={dms.videoRef}
+                playsInline
+                muted
+                controls={dms.mode === 'video'}
+                style={{ display: ['model', 'video'].includes(dms.mode) ? 'block' : 'none' }}
+                aria-label={dms.mode === 'video' ? 'Selected local driver video' : 'Driver camera feed'}
+              />
+              <canvas ref={dms.canvasRef} style={{ display: ['model', 'video'].includes(dms.mode) ? 'block' : 'none' }} aria-hidden="true" />
+              {!['model', 'video'].includes(dms.mode) && (
                 <div className="evidence-video-empty">
-                  <CinemaIcon name={dms.mode === 'sim' ? 'simulation' : 'camera'} size={28} />
-                  <strong>{dms.mode === 'sim' ? 'Simulation is running through the real metrics pipeline' : 'Camera is not active'}</strong>
+                  <CinemaIcon name={['sim', 'replay'].includes(dms.mode) ? 'simulation' : 'camera'} size={28} />
+                  <strong>{dms.mode === 'video' ? 'The selected local video uses the on-device DMS pipeline' : dms.mode === 'sim' ? 'Simulation is running through the real metrics pipeline' : dms.mode === 'replay' ? 'Replay fallback keeps the same DMS evidence path' : 'Camera is not active'}</strong>
                   <span>Blinks · PERCLOS · Head pose · Eyes off road · Emotion</span>
                 </div>
               )}
             </div>
             <div className="evidence-actions">
-              <button type="button" onClick={() => void dms.startModel()}><CinemaIcon name="camera" />Live DMS</button>
-              <button type="button" onClick={dms.startSim}><CinemaIcon name="simulation" />Simulation</button>
+              <button type="button" aria-pressed={dms.mode === 'model'} onClick={() => void dms.startModel()}><CinemaIcon name="camera" />Live DMS</button>
+              <button type="button" aria-pressed={dms.mode === 'video'} onClick={chooseVideo}><CinemaIcon name="upload" />Upload Video</button>
               <button type="button" onClick={dms.stopAll} disabled={dms.mode === 'off'}>Stop</button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="video/*,.mp4,.m4v,.mov,.webm,.ogv,.ogg"
+                hidden
+                onChange={(event) => loadVideo(event.currentTarget.files?.[0])}
+              />
             </div>
+            {dms.mode === 'video' && dms.localVideo && (
+              <div className="evidence-video-source" role="status">
+                <span>LOCAL FILE · ON-DEVICE</span>
+                <strong title={dms.localVideo.name}>{dms.localVideo.name}</strong>
+                <small>{formatLocalVideoSize(dms.localVideo.size)}</small>
+              </div>
+            )}
             {dms.status.kind === 'loading' && <p className="evidence-status">{dms.status.detail}</p>}
-            {dms.status.kind === 'error' && <p className="evidence-status error" role="alert">Camera unavailable: {dms.status.detail}. Switch to simulation to continue the full flow.</p>}
+            {dms.inputError && <p className="evidence-status error" role="alert">{dms.inputError}</p>}
+            {dms.status.kind === 'error' && <p className="evidence-status error" role="alert">DMS input unavailable: {dms.status.detail}. Choose another local input, or restart the Full Demo to use its labelled replay fallback.</p>}
 
             <div className="evidence-metrics">
               <Metric label="EAR" value={sample ? sample.ear.toFixed(2) : '—'} />
@@ -189,6 +262,22 @@ export default function EvidenceDrawer({
               <Metric label="DRIVER PRESENT" value={sample ? (sample.present ? 'Yes' : 'No') : '—'} tone={sample && !sample.present ? 'danger' : 'normal'} />
             </div>
 
+            <div className="evidence-section-head"><h3>Occupant Monitoring</h3><span>23 SEMANTIC STATES · SIMULATED</span></div>
+            <div className="oms-seat-map" aria-label="OMS seat map">
+              {OMS_SEATS.map((seat) => (
+                <button key={seat} type="button" aria-pressed={omsSeat === seat} data-seat={seat} onClick={() => setOmsSeat(seat)}>
+                  <span>{seat === 'driver' ? 'DRIVER · LEFT' : humanize(seat)}</span>
+                  <i data-risk={snap.oms.active?.seat === seat ? snap.oms.risk : 'none'} />
+                </button>
+              ))}
+            </div>
+            <div className="oms-simulator">
+              <label>Behavior<select value={omsBehavior} onChange={(event) => setOmsBehavior(event.target.value as OmsBehavior)}>{OMS_BEHAVIORS.map((behavior) => <option key={behavior} value={behavior}>{humanize(behavior)}</option>)}</select></label>
+              <label>Confidence <b>{Math.round(omsConfidence * 100)}%</b><input type="range" min="0" max="1" step="0.01" value={omsConfidence} onChange={(event) => setOmsConfidence(Number(event.target.value))} /></label>
+              <label>Duration <b>{omsDuration.toFixed(1)} s</b><input type="range" min="0" max="8" step="0.1" value={omsDuration} onChange={(event) => setOmsDuration(Number(event.target.value))} /></label>
+              <div><button type="button" onClick={injectOms}>Inject event</button><button type="button" onClick={clearOms}>Mark clear</button></div>
+            </div>
+
           </section>
 
           <section className="evidence-column" data-stage="reasoning" aria-labelledby="evidence-reasoning-title">
@@ -196,7 +285,14 @@ export default function EvidenceDrawer({
             <div className="reasoning-summary">
               <span>CURRENT DECISION</span>
               <h3>{decision}</h3>
-              <p>EVA takes the stronger fatigue channel, then combines it with road complexity and explicit safety thresholds.</p>
+              <p>EVA correlates the occupant event with local DMS evidence, then applies explicit safety thresholds without inventing a decision confidence.</p>
+            </div>
+            <div className="evidence-section-head"><h3>OMS × DMS Correlation</h3><span>{snap.momentTrace.phase.toUpperCase()}</span></div>
+            <div className="evidence-metrics">
+              <Metric label="OMS RISK" value={snap.oms.stale ? 'Stale · not clear' : snap.oms.risk.toUpperCase()} tone={snap.oms.risk === 'urgent' ? 'danger' : snap.oms.risk === 'warning' ? 'warn' : 'normal'} />
+              <Metric label="SEAT / BEHAVIOR" value={snap.oms.active ? `${humanize(snap.oms.active.seat)} · ${humanize(snap.oms.active.behavior)}` : 'No active event'} />
+              <Metric label="DURATION THRESHOLD" value={`${snap.oms.active?.durationSec.toFixed(1) ?? '—'} / ${P.oms.outsideUrgentSec.toFixed(1)} s`} tone={snap.oms.risk === 'urgent' ? 'danger' : 'normal'} />
+              <Metric label="FATIGUE EXCLUSION" value={sample?.present && perclos < P.perclosTh.warn * 100 ? 'PERCLOS normal' : 'Awaiting evidence'} />
             </div>
             <div className="evidence-section-head"><h3>Fatigue Fusion</h3><span>TAKE THE STRONGER</span></div>
             <div className="evidence-metrics">
@@ -222,6 +318,15 @@ export default function EvidenceDrawer({
               <button type="button" aria-pressed={snap.drive.auto} onClick={setAuto}>{snap.drive.auto ? 'Disable L2' : 'Enable L2'}</button>
               <p>L2 only assists with lane-level steering and acceleration. The driver remains responsible, must supervise continuously and be ready to take over.</p>
             </div>
+
+            <div className="evidence-section-head"><h3>Protective Response</h3><span>{snap.oms.response.active ? 'ACTIVE' : snap.oms.awaitingConfirmation ? 'VERIFYING' : 'STANDBY'}</span></div>
+            <div className="evidence-metrics">
+              <Metric label="REMINDER TARGET" value={snap.oms.risk !== 'none' || snap.oms.awaitingConfirmation ? 'Rear-right passenger' : 'None'} />
+              <Metric label="SPEED CAP" value={snap.oms.response.speedCapKmh === null ? 'No temporary cap' : `${snap.oms.response.speedCapKmh} km/h`} tone={snap.oms.response.active ? 'warn' : 'normal'} />
+              <Metric label="FOLLOWING GAP" value={snap.oms.response.followingGap.toUpperCase()} tone={snap.oms.response.followingGap === 'extended' ? 'warn' : 'normal'} />
+              <Metric label="DRIVER CONFIRMATION" value={snap.oms.awaitingConfirmation ? 'Required' : snap.momentTrace.record?.verification.driverConfirmed ? 'Confirmed' : 'Not requested'} tone={snap.oms.awaitingConfirmation ? 'warn' : 'normal'} />
+            </div>
+            {snap.oms.awaitingConfirmation && <button type="button" className="evidence-confirm" onClick={onConfirmSafety}>Confirm occupant and road are safe</button>}
 
             <div className="evidence-section-head"><h3>Cabin Actuators</h3><span>LIVE</span></div>
             <dl className="actuator-grid">

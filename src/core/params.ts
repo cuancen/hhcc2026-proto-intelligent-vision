@@ -43,12 +43,25 @@ export const P = {
 
   /** 速度趋近时间常数（仿真分钟） */
   speedTau: 0.9,
+
+  /** OMS 语义事件边界：置信度、车窗外探持续时间、失效与历史上限。 */
+  oms: {
+    cruiseSpeedKmh: 72,
+    minConfidence: 0.6,
+    outsideUrgentSec: 0.8,
+    staleMin: 8 / 60,
+    historyLimit: 20,
+    highwayEscalateKmh: 60,
+    speedReductionKmh: 20,
+    minimumSpeedCapKmh: 30,
+  } as const,
 } as const;
 
 export const SCENARIOS = {
   commute: { label: 'Daily Commute', desc: 'Boarding greeting · identity · usual route · personalized cabin' },
   fatigue: { label: 'Fatigue Guard', desc: 'Vision PERCLOS + simulated workload fatigue → graded intervention' },
   complex: { label: 'Complex Roads', desc: 'Rainy night + congestion + curves → coordinated cautious mode' },
+  'cabin-safety': { label: 'Cabin Safety', desc: 'Local DMS evidence + simulated OMS → explainable coordinated response' },
 } as const;
 
 export type ScenarioId = keyof typeof SCENARIOS;

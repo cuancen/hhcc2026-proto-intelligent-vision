@@ -58,7 +58,7 @@
 ## D-009 - Present the three scenarios through one digital-twin stage
 
 - **Date:** 2026-08-22
-- **Status:** Accepted
+- **Status:** Superseded by D-014
 - **Decision:** Retain one full-screen vehicle digital-twin interface with a pausable three-act tour and a separate technical Evidence surface. All public UI copy is English, and all assistance remains explicitly L2.
 - **Reason:** The team rejected the earlier monitoring-wall layout and the object-memory story because they diluted the three-scenario product narrative. A single stage communicates the experience while Evidence preserves inspectability.
 
@@ -89,3 +89,17 @@
 - **Status:** Accepted
 - **Decision:** Parent the procedural road, lane lines, city volumes, depth gates, and simulated lead vehicle to the same stage as the GLB vehicle. Align that world to the measured vehicle longitudinal axis, derive road height from the fitted model floor, use distinct commute/fatigue/complex camera families, and omit wheel animation.
 - **Reason:** A shared rig prevents the road and vehicle from drifting into different perspective lines. Model-derived ground clearance avoids tyre intersections, while scene-specific cameras communicate the three scenarios more clearly without modifying the high-poly GLB wheel geometry.
+
+## D-014 - Make the five-experience tour the formal demo
+
+- **Date:** 2026-08-22
+- **Status:** Accepted
+- **Decision:** Use one automatic tour in the order Daily Commute, Fatigue Guard, Complex Roads, Cabin Memory, and OMS MomentTrace. Keep every experience independently selectable. Default DMS input is a clearly labelled replay; live camera and local-video analysis run only after explicit user selection and stay on-device.
+- **Reason:** A deterministic formal run lets judges see the full product without permission dialogs or manual scene switching. Ending on OMS MomentTrace elevates EVA from a fatigue detector to an explainable cabin-safety agent while preserving honest source boundaries.
+
+## D-015 - Use a calibrated semantic cutaway for OMS
+
+- **Date:** 2026-08-22
+- **Status:** Accepted
+- **Decision:** Calibrate the vehicle as left-hand drive, place the driver front-left and the risk occupant rear-right, and use articulated semantic figures plus short in-cabin links over the original GLB interior. The main OMS event is simulated; DMS provides local or replay evidence, and EVA records the resulting MomentTrace.
+- **Reason:** Sparse semantic geometry keeps the causal relationship legible without pretending that a low-detail procedural interior is production CAD. Vehicle-local coordinates and seat-specific camera targets prevent left/right ambiguity and visual drift.

@@ -4,7 +4,7 @@ This file records contribution ownership without adding unverified personal info
 
 | Workstream | Current responsibility record | Evidence |
 |---|---|---|
-| Product direction and safety boundary | Team review and approval; L2-only positioning and three-act scope | `docs/DECISIONS.md`, README, user-reviewed demo milestones |
+| Product direction and safety boundary | Team review and approval; L2-only positioning and five-experience scope | `docs/DECISIONS.md`, README, user-reviewed demo milestones |
 | Core simulation and EVA rules | `cuancen` and `Eva Cockpit Team` Git identities | `src/core/`, official-period commits |
 | Driver monitoring and fallback pipeline | `cuancen` and `Eva Cockpit Team` Git identities | `src/vision/`, vision regression tests |
 | Landing, cockpit, accessibility, and digital twin | `Eva Cockpit Team` Git identity with team-directed AI assistance | `src/landing/`, `src/shell/`, `AI_USAGE.md` |

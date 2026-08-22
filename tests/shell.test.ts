@@ -9,7 +9,12 @@ import { buildBust, eyeShapeOf, MOOD_COLOR } from '../src/shell/evaAvatar';
 import { createState } from '../src/core/sim';
 import { createCockpit, SCENARIOS } from '../src/core';
 import { createSimulationClock } from '../src/shell/simulationClock';
-import { deriveTwinFrame, fitModelBounds, isTwinMotionActive } from '../src/shell/twin/twinState';
+import { cameraCutKey, deriveTwinFrame, fitModelBounds, isTwinMotionActive } from '../src/shell/twin/twinState';
+import { VEHICLE_CALIBRATION } from '../src/shell/twin/twinScene';
+import { resolveWithin } from '../src/shell/preflight';
+import { FULL_DEMO_STEPS, runFullDemo } from '../src/shell/fullDemo';
+import { progressPhaseOf } from '../src/shell/components/CockpitHeader';
+import { normalizeSpeechText } from '../src/shell/hooks/useTts';
 
 afterEach(() => {
   vi.useRealTimers();
@@ -29,126 +34,118 @@ describe('开机自检动画', () => {
   });
 });
 
-describe('自动演示剧本（路演讲解）', () => {
-  it('步骤时间严格递增，防止讲解与事件错拍', () => {
-    for (let k = 1; k < DEMO_STEPS.length; k++) {
-      expect(DEMO_STEPS[k].sec).toBeGreaterThan(DEMO_STEPS[k - 1].sec);
-    }
+describe('Hybrid Live OMS MomentTrace 主演示', () => {
+  const replayDeps = (api: ReturnType<typeof createCockpit>) => ({
+    act: api.actions,
+    traceDmsMode: 'replay-fallback' as const,
+    getVision: () => null,
+    activateReplayDms: () => undefined,
+    setSpeed: () => undefined,
   });
 
-  it('每一步都有标题与面向评委的讲解文案', () => {
-    expect(DEMO_STEPS.length).toBeGreaterThanOrEqual(9);
-    for (const s of DEMO_STEPS) {
-      expect(s.title.trim().length).toBeGreaterThan(0);
-      expect(s.note.trim().length).toBeGreaterThanOrEqual(6);
-    }
-  });
-
-  it('覆盖通勤、疲劳与复杂路况三幕，并保留驾驶员责任边界', () => {
-    const all = DEMO_STEPS.map((s) => `${s.title}\n${s.note}`).join('\n');
-    expect(all).toContain('City Commute');
-    expect(all).toContain('Fatigue Guard');
-    expect(all).toContain('Complex Roads');
-    expect(all).toContain('driver always in charge');
-    expect(Object.keys(SCENARIOS)).toEqual(['commute', 'fatigue', 'complex']);
-  });
-
-  it('九个镜头提示稳定、唯一，三维舞台不依赖步骤序号猜测', () => {
-    expect(DEMO_STEPS).toHaveLength(9);
+  it('十个提示稳定、唯一，并按 35 秒主线严格递增', () => {
+    expect(DEMO_STEPS.map((step) => step.sec)).toEqual([0.5, 4, 6, 10, 13, 15, 23, 29, 32, 35]);
     expect(DEMO_STEPS.map((step) => step.cue)).toEqual([
-      'commute',
-      'fatigue-monitoring',
-      'fatigue-care',
-      'fatigue-urgent',
-      'fatigue-rest',
-      'complex-roads',
-      'conditions-ease',
-      'voice-command',
-      'completed',
+      'oms-cruise', 'oms-candidate', 'oms-prompt', 'oms-correlate', 'oms-decide',
+      'oms-urgent', 'oms-clear', 'oms-verify', 'moment-trace', 'completed',
     ]);
-    expect(new Set(DEMO_STEPS.map((step) => step.cue)).size).toBe(9);
+    expect(new Set(DEMO_STEPS.map((step) => step.cue)).size).toBe(10);
+    for (const step of DEMO_STEPS) {
+      expect(step.title.trim()).not.toBe('');
+      expect(step.note.trim().length).toBeGreaterThan(6);
+    }
   });
 
-  it('九步时间严格回到 Git 三幕基线', () => {
-    expect(DEMO_STEPS.map((step) => step.sec)).toEqual([0.5, 9, 13, 19, 23, 30, 46, 52, 58]);
+  it('产品场景保留三项备用能力并新增 cabin-safety 内核场景', () => {
+    expect(Object.keys(SCENARIOS)).toEqual(['commute', 'fatigue', 'complex', 'cabin-safety']);
+    const all = DEMO_STEPS.map((step) => `${step.title} ${step.note}`).join(' ');
+    expect(all).toContain('OMS');
+    expect(all).toContain('DMS');
+    expect(all).toContain('you remain in charge');
   });
 
-  it('巡演使用 0.15× 仿真倍率，停止时恢复默认倍率', () => {
+  it('使用 0.15× 仿真倍率，停止时恢复默认倍率', () => {
     vi.useFakeTimers();
     const api = createCockpit();
     const speeds: number[] = [];
-    const demo = runAutoDemo({
-      act: api.actions,
-      ensureSimVision: () => undefined,
-      setSpeed: (speed) => speeds.push(speed),
-    });
+    const demo = runAutoDemo({ ...replayDeps(api), setSpeed: (speed) => speeds.push(speed) });
     expect(speeds.at(-1)).toBe(0.15);
     demo.stop();
     expect(speeds.at(-1)).toBe(1);
   });
 
-  it('暂停后不推进提示，继续不重复触发，重播清空旧进度', () => {
+  it('暂停不推进、继续不重复，重播完整复位', () => {
     vi.useFakeTimers();
     const api = createCockpit();
     const cues: string[] = [];
     const transport: string[] = [];
     const demo = runAutoDemo({
-      act: api.actions,
-      ensureSimVision: () => undefined,
-      setSpeed: () => undefined,
-      setSimulationRunning: () => undefined,
+      ...replayDeps(api),
       onStep: (step) => cues.push(step.cue),
       onTransport: (state) => transport.push(state),
     });
-
-    vi.advanceTimersByTime(5_000);
-    expect(cues).toEqual(['commute']);
-    expect(api.state.scenario).toBe('commute');
-
+    vi.advanceTimersByTime(4_100);
+    expect(cues).toEqual(['oms-cruise', 'oms-candidate']);
+    expect(api.state.scenario).toBe('cabin-safety');
     demo.pause();
     vi.advanceTimersByTime(20_000);
-    expect(cues).toEqual(['commute']);
-
+    expect(cues).toHaveLength(2);
     demo.resume();
-    vi.advanceTimersByTime(4_100);
-    expect(cues).toEqual(['commute', 'fatigue-monitoring']);
-
+    vi.advanceTimersByTime(2_000);
+    expect(cues.at(-1)).toBe('oms-prompt');
     demo.restart();
-    expect(api.state.scenario).toBe('commute');
+    expect(api.state.momentTrace.phase).toBe('perceive');
     expect(transport.at(-1)).toBe('running');
     vi.advanceTimersByTime(600);
-    expect(cues.at(-1)).toBe('commute');
+    expect(cues.at(-1)).toBe('oms-cruise');
     demo.stop();
   });
 
-  it('完整执行 Git 三幕动作，完成后冻结且路线仍大于零', () => {
+  it('现场 DMS 条件等待超时后只降级 DMS，流程不中断', () => {
+    vi.useFakeTimers();
+    const api = createCockpit();
+    const fallback = vi.fn();
+    const demo = runAutoDemo({
+      act: api.actions,
+      traceDmsMode: 'live',
+      getVision: () => ({ present: true, perclos: 0.03, blinkPm: 7, lookAwaySec: 0, yaw: 0, pitch: 0, ear: 0.3, emotion: 'neutral', source: 'model' }),
+      activateReplayDms: fallback,
+      setSpeed: () => undefined,
+    });
+    vi.advanceTimersByTime(16_100);
+    expect(fallback).toHaveBeenCalledTimes(1);
+    expect(demo.getTraceDmsMode()).toBe('replay-fallback');
+    expect(api.state.momentTrace.dmsMode).toBe('replay-fallback');
+    expect(api.state.oms.active?.seat).toBe('rear-right');
+    demo.stop();
+  });
+
+  it('完成 OMS 风险、双传感器恢复与驾驶员确认后冻结', () => {
     vi.useFakeTimers();
     const api = createCockpit();
     let speed = 1;
     let simTimer: ReturnType<typeof setInterval> | null = null;
     const demo = runAutoDemo({
-      act: api.actions,
-      ensureSimVision: () => undefined,
+      ...replayDeps(api),
       setSpeed: (next) => { speed = next; },
-      setSimulationRunning: (running) => {
+      setSimulationRunning: (isRunning) => {
         if (simTimer) clearInterval(simTimer);
-        simTimer = running ? setInterval(() => api.step(0.2 * speed), 100) : null;
+        simTimer = isRunning ? setInterval(() => api.step(0.2 * speed), 100) : null;
       },
     });
-
-    vi.advanceTimersByTime(13_100);
-    expect(api.state.scenario).toBe('fatigue');
-    expect(api.state.driver.simFatigue).toBeGreaterThanOrEqual(62);
-    vi.advanceTimersByTime(6_000);
-    expect(api.state.driver.simFatigue).toBeGreaterThanOrEqual(88);
-    vi.advanceTimersByTime(4_000);
-    expect(api.state.driver.simFatigue).toBeLessThan(20);
-    vi.advanceTimersByTime(7_000);
-    expect(api.state.scenario).toBe('complex');
-    vi.advanceTimersByTime(16_000);
-    expect(api.state.scenario).toBe('commute');
-    vi.advanceTimersByTime(14_100);
+    vi.advanceTimersByTime(15_100);
+    expect(api.state.oms.risk).toBe('urgent');
+    expect(api.state.oms.response.speedCapKmh).toBe(52);
+    vi.advanceTimersByTime(14_000);
+    expect(api.state.oms.awaitingConfirmation).toBe(true);
+    expect(api.state.momentTrace.record?.verification.omsClear).toBe(true);
+    vi.advanceTimersByTime(3_100);
+    expect(api.state.momentTrace.phase).toBe('verify');
+    demo.confirmSafety();
+    expect(api.state.momentTrace.phase).toBe('artifact');
+    vi.advanceTimersByTime(3_100);
     expect(demo.getState()).toBe('completed');
+    expect(api.state.momentTrace.record?.verification.driverConfirmed).toBe(true);
     expect(api.state.drive.routeKm).toBeGreaterThan(0);
     const frozen = api.state.t;
     vi.advanceTimersByTime(5_000);
@@ -157,20 +154,17 @@ describe('自动演示剧本（路演讲解）', () => {
     if (simTimer) clearInterval(simTimer);
   });
 
-  it('主线程长任务结束后冻结丢失时间，不把多个电影镜头挤在同一帧', () => {
+  it('主线程长任务结束后冻结丢失时间，不把多个镜头挤在同一帧', () => {
     vi.useFakeTimers();
     const api = createCockpit();
     const cues: string[] = [];
     let now = 0;
     const demo = runAutoDemo({
-      act: api.actions,
-      ensureSimVision: () => undefined,
-      setSpeed: () => undefined,
+      ...replayDeps(api),
       onStep: (step) => cues.push(step.cue),
       now: () => now,
       intervalMs: 50,
     });
-
     now = 5_000;
     vi.advanceTimersByTime(50);
     expect(cues).toEqual([]);
@@ -178,8 +172,104 @@ describe('自动演示剧本（路演讲解）', () => {
       now += 50;
       vi.advanceTimersByTime(50);
     }
-    expect(cues).toEqual(['commute']);
+    expect(cues).toEqual(['oms-cruise']);
     demo.stop();
+  });
+});
+
+describe('五场景正式自动巡演', () => {
+  it('按通勤、疲劳、复杂路况、舱内记忆、OMS 的顺序完整覆盖，播报之间保留安全间隔', () => {
+    expect(FULL_DEMO_STEPS).toHaveLength(21);
+    expect(FULL_DEMO_STEPS.map((step) => step.sec)).toEqual([
+      0.5, 6, 12, 18, 24, 30, 36, 42, 48, 54, 60, 66, 72, 78, 84, 90, 94, 100, 106, 112, 118,
+    ]);
+    expect(FULL_DEMO_STEPS.filter((step) => /^0\d ·/.test(step.title)).map((step) => step.title)).toEqual([
+      '01 · Daily Commute',
+      '02 · Fatigue Guard',
+      '03 · Complex Roads',
+      '04 · Cabin Memory',
+      '05 · OMS MomentTrace',
+    ]);
+    const voiced = FULL_DEMO_STEPS.filter((step) => step.voice !== false);
+    for (let index = 1; index < voiced.length; index += 1) {
+      expect(voiced[index].sec - voiced[index - 1].sec).toBeGreaterThanOrEqual(5.5);
+    }
+    expect(FULL_DEMO_STEPS.every((step) => step.note.length <= 130)).toBe(true);
+  });
+
+  it('五场景无人值守运行到底，OMS 双传感器恢复后自动确认并冻结', () => {
+    vi.useFakeTimers();
+    const api = createCockpit();
+    const cues: string[] = [];
+    const sceneAtCue: string[] = [];
+    let simSpeed = 1;
+    let simTimer: ReturnType<typeof setInterval> | null = null;
+    const demo = runFullDemo({
+      act: api.actions,
+      traceDmsMode: 'replay-fallback',
+      setSpeed: (next) => { simSpeed = next; },
+      setSimulationRunning: (isRunning) => {
+        if (simTimer) clearInterval(simTimer);
+        simTimer = isRunning ? setInterval(() => api.step(0.2 * simSpeed), 100) : null;
+      },
+      onStep: (step) => {
+        cues.push(step.cue);
+        sceneAtCue.push(api.state.scenario);
+      },
+    });
+
+    vi.advanceTimersByTime(118_300);
+    expect(cues).toHaveLength(FULL_DEMO_STEPS.length);
+    expect(sceneAtCue[0]).toBe('commute');
+    expect(sceneAtCue[2]).toBe('fatigue');
+    expect(sceneAtCue[6]).toBe('complex');
+    expect(sceneAtCue[9]).toBe('commute');
+    expect(sceneAtCue[12]).toBe('cabin-safety');
+    expect(api.state.momentTrace.phase).toBe('completed');
+    expect(api.state.momentTrace.record?.verification.driverConfirmed).toBe(true);
+    expect(api.state.drive.routeKm).toBeGreaterThan(0);
+    expect(demo.getState()).toBe('completed');
+    const frozen = api.state.t;
+    vi.advanceTimersByTime(3_000);
+    expect(api.state.t).toBe(frozen);
+    demo.stop();
+    if (simTimer) clearInterval(simTimer);
+  });
+
+  it('暂停不跨场景推进，继续后从原位置接续', () => {
+    vi.useFakeTimers();
+    const api = createCockpit();
+    const cues: string[] = [];
+    const demo = runFullDemo({
+      act: api.actions,
+      traceDmsMode: 'replay-fallback',
+      setSpeed: () => undefined,
+      onStep: (step) => cues.push(step.cue),
+    });
+    vi.advanceTimersByTime(12_100);
+    expect(cues).toEqual(['commute', 'commute', 'fatigue-monitoring']);
+    demo.pause();
+    vi.advanceTimersByTime(30_000);
+    expect(cues).toHaveLength(3);
+    demo.resume();
+    vi.advanceTimersByTime(6_000);
+    expect(cues.at(-1)).toBe('fatigue-care');
+    demo.stop();
+  });
+
+  it('顶部五段进度在 Full Demo 中只随五个体验前进', () => {
+    const step = (i: number) => ({ i, total: 21, cue: FULL_DEMO_STEPS[i - 1].cue, title: '', note: '' });
+    expect(progressPhaseOf('full-demo', step(1), 'commute')).toBe(0);
+    expect(progressPhaseOf('full-demo', step(3), 'fatigue-monitoring')).toBe(1);
+    expect(progressPhaseOf('full-demo', step(7), 'complex-roads')).toBe(2);
+    expect(progressPhaseOf('full-demo', step(10), 'cabin-memory')).toBe(3);
+    expect(progressPhaseOf('full-demo', step(13), 'oms-cruise')).toBe(4);
+  });
+
+  it('浏览器临时语音会把技术缩写转换成更自然的读法', () => {
+    expect(normalizeSpeechText('DMS × OMS checks PERCLOS while L2 stays active.')).toBe(
+      'D M S × O M S checks per-clos while level two stays active.',
+    );
   });
 });
 
@@ -202,7 +292,71 @@ describe('仿真播放时钟', () => {
   });
 });
 
+describe('DMS 预检上限', () => {
+  it('权限请求悬挂时按上限返回降级值', async () => {
+    vi.useFakeTimers();
+    const pending = new Promise<boolean>(() => undefined);
+    const result = resolveWithin(pending, 4_000, false);
+    await vi.advanceTimersByTimeAsync(4_000);
+    await expect(result).resolves.toBe(false);
+  });
+});
+
 describe('数字孪生镜头派生', () => {
+  it('车辆校准固定为左舵：驾驶员前排左侧，OMS 风险乘员后排右侧', () => {
+    expect(VEHICLE_CALIBRATION.handedness).toBe('left-hand-drive');
+    expect(VEHICLE_CALIBRATION.driver[0]).toBeGreaterThan(0);
+    expect(VEHICLE_CALIBRATION.driver[2]).toBeGreaterThan(VEHICLE_CALIBRATION.rearRight[2]);
+    expect(VEHICLE_CALIBRATION.rearRight[0]).toBeLessThan(0);
+    expect(VEHICLE_CALIBRATION.driver[0]).toBeLessThan(0.65);
+    expect(VEHICLE_CALIBRATION.rearRight[0]).toBeGreaterThan(-0.65);
+    expect(VEHICLE_CALIBRATION.driver[0] - VEHICLE_CALIBRATION.rearRight[0]).toBeGreaterThan(0.9);
+    expect(VEHICLE_CALIBRATION.driver[2]).toBeLessThanOrEqual(0.5);
+    expect(VEHICLE_CALIBRATION.driver[2] - VEHICLE_CALIBRATION.rearRight[2]).toBeGreaterThan(0.8);
+    expect(VEHICLE_CALIBRATION.driver[2] - VEHICLE_CALIBRATION.rearRight[2]).toBeLessThan(1.2);
+    expect(VEHICLE_CALIBRATION.rearRightWindow[0]).toBeLessThan(VEHICLE_CALIBRATION.rearRight[0]);
+  });
+
+  it('Live 同机位的车速变化不会被误判为新镜头', () => {
+    const state = createState('cabin-safety');
+    state.drive.speed = 38;
+    const accelerating = deriveTwinFrame(state, 'oms-cruise', 'calm');
+    state.drive.speed = 72;
+    const cruising = deriveTwinFrame(state, 'oms-cruise', 'calm');
+
+    expect(accelerating.motionIntensity).not.toBe(cruising.motionIntensity);
+    expect(cameraCutKey(accelerating)).toBe(cameraCutKey(cruising));
+    expect(deriveTwinFrame(state, 'oms-candidate', 'care').camera).toBe('rearRightReveal');
+    expect(deriveTwinFrame(state, 'oms-prompt', 'care').camera).toBe('rearRightChase');
+  });
+
+  it('OMS 主线只在关联、风险和恢复节点切到对应稳定机位', () => {
+    const state = createState('cabin-safety');
+    state.drive.speed = 72;
+
+    const correlate = deriveTwinFrame(state, 'oms-correlate', 'care');
+    expect(correlate.camera).toBe('leftFrontHigh');
+    expect(correlate.environment).toBe('cabin');
+    expect(correlate.correlation).toBe(true);
+    expect(correlate.bodyOpacity).toBeLessThan(0.5);
+
+    state.oms.response.active = true;
+    const urgent = deriveTwinFrame(state, 'oms-urgent', 'urgent');
+    expect(urgent.camera).toBe('rearRightFocus');
+    expect(urgent.accent).toBe('danger');
+    expect(urgent.omsMarker).toBe('urgent');
+    expect(urgent.braking).toBe(true);
+
+    const recovered = deriveTwinFrame(state, 'oms-verify', 'calm');
+    expect(recovered.camera).toBe('rearWide');
+    expect(recovered.omsMarker).toBe('clear');
+
+    const artifact = deriveTwinFrame(state, 'moment-trace', 'calm');
+    expect(artifact.camera).toBe('rearWide');
+    expect(artifact.motionIntensity).toBe(0);
+    expect(artifact.traceArtifact).toBe(true);
+  });
+
   it('车型缩放后仍以舞台原点为中心', () => {
     const fit = fitModelBounds([19.59, 8.4, 24.53], [0.62, 4.18, 1.19]);
     const finalCenter = [

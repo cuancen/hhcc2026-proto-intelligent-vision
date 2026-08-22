@@ -9,7 +9,9 @@ import {
   earOf,
   headPoseOf,
 } from '../src/vision/metrics';
-import { simulatedEarAt } from '../src/vision/simVision';
+import { createState } from '../src/core/sim';
+import { shouldReplayLookAway, simulatedEarAt } from '../src/vision/simVision';
+import { createObjectUrlLease, validateLocalDmsVideo } from '../src/shell/localVideo';
 
 /** 依据索引构造合成关键点：open=true 生成睁开眼（EAR≈0.38），否则闭眼（EAR≈0.02） */
 function synthEye(open: boolean) {
@@ -128,6 +130,24 @@ describe('视线离开追踪器', () => {
   });
 });
 
+describe('MomentTrace DMS 回放', () => {
+  it('风险存在时看向右后，OMS 清除后回正以形成恢复证据', () => {
+    const state = createState('cabin-safety');
+    state.momentTrace.phase = 'act';
+    state.oms.active = {
+      behavior: 'body-outside-window',
+      seat: 'rear-right',
+      confidence: 0.96,
+      durationSec: 1.2,
+      source: 'simulated-oms',
+      observedAt: 0,
+    };
+    expect(shouldReplayLookAway(state)).toBe(true);
+    state.oms.active = null;
+    expect(shouldReplayLookAway(state)).toBe(false);
+  });
+});
+
 describe('情绪分类（blendshapes 启发式）', () => {
   it('微笑+脸颊上抬 → happy；嘴角下垂+内眉上挑 → sad', () => {
     expect(classifyEmotion({ mouthSmileLeft: 0.7, mouthSmileRight: 0.7, cheekSquintLeft: 0.4, cheekSquintRight: 0.4 }).id).toBe('happy');
@@ -155,5 +175,27 @@ describe('情绪分类（blendshapes 启发式）', () => {
     expect(sm.feed('sad')).toBe('happy');     // 3/4 仍是 happy
     expect(sm.feed('sad')).toBe('neutral');   // 2/4 未过半
     expect(sm.feed('sad')).toBe('sad');       // 3/4 sad
+  });
+});
+
+describe('本地 DMS 视频输入', () => {
+  it('接受浏览器视频类型及常见视频扩展名，拒绝空文件和图片', () => {
+    expect(validateLocalDmsVideo({ name: 'driver.mp4', type: 'video/mp4', size: 1024 })).toBeNull();
+    expect(validateLocalDmsVideo({ name: 'driver.MOV', type: '', size: 1024 })).toBeNull();
+    expect(validateLocalDmsVideo({ name: 'portrait.png', type: 'image/png', size: 1024 })).toMatch(/video/i);
+    expect(validateLocalDmsVideo({ name: 'empty.mp4', type: 'video/mp4', size: 0 })).toMatch(/empty/i);
+  });
+
+  it('对象 URL 只释放一次，避免切换输入源后继续占用视频文件', () => {
+    const revoked: string[] = [];
+    const lease = createObjectUrlLease({} as Blob, {
+      createObjectURL: () => 'blob:local-dms-test',
+      revokeObjectURL: (url) => revoked.push(url),
+    });
+
+    expect(lease.url).toBe('blob:local-dms-test');
+    lease.release();
+    lease.release();
+    expect(revoked).toEqual(['blob:local-dms-test']);
   });
 });

@@ -17,7 +17,9 @@ interface DmsPanelProps {
 const SOURCE_LABEL: Record<DmsMode, string> = {
   off: 'Off',
   model: '● Camera model inference',
+  video: '● Local video inference',
   sim: '◆ Simulated signal (same pipeline)',
+  replay: '◆ Replay fallback (same pipeline)',
 };
 
 /** 情绪展示：emoji + 英文标签（检测 6 态，与 Eva 主动关怀联动） */
@@ -51,10 +53,10 @@ export default function DmsPanel({
       </h2>
 
       <div className="dms-video">
-        <video ref={videoRef} playsInline muted style={{ display: mode === 'model' ? 'block' : 'none' }} aria-label="Driver camera view" />
-        <canvas ref={canvasRef} style={{ display: mode === 'model' ? 'block' : 'none' }} aria-hidden="true" />
+        <video ref={videoRef} playsInline muted style={{ display: ['model', 'video'].includes(mode) ? 'block' : 'none' }} aria-label={mode === 'video' ? 'Selected local driver video' : 'Driver camera view'} />
+        <canvas ref={canvasRef} style={{ display: ['model', 'video'].includes(mode) ? 'block' : 'none' }} aria-hidden="true" />
 
-        {mode !== 'model' && (
+        {!['model', 'video'].includes(mode) && (
           <div className="dms-empty">
             {mode === 'off' && status.kind !== 'loading' && (
               <>

@@ -10,6 +10,34 @@ export type CabinObjectId = 'parking-card' | 'phone' | 'laptop-bag' | 'water-bot
 export type ContextPhase = 'idle' | 'observed' | 'searching' | 'assisting' | 'verified' | 'exit-check' | 'exit-reminded';
 export type ContextStage = 'See' | 'Understand' | 'Act' | 'Verify' | 'Remind';
 export type ObjectImportance = 'normal' | 'important';
+export type OmsSeat = 'driver' | 'front-passenger' | 'rear-left' | 'rear-right' | 'unknown';
+export type OmsRisk = 'none' | 'care' | 'warning' | 'urgent';
+export type OmsBehavior =
+  | 'unknown'
+  | 'standing-on-seat'
+  | 'standing'
+  | 'lying'
+  | 'sleeping'
+  | 'tablet'
+  | 'laptop'
+  | 'phone'
+  | 'calling'
+  | 'reading'
+  | 'makeup'
+  | 'odorous-food'
+  | 'eating'
+  | 'drinking'
+  | 'smoking'
+  | 'head-outside-window'
+  | 'body-outside-window'
+  | 'hand-outside-window'
+  | 'holding-pet'
+  | 'fighting'
+  | 'crying'
+  | 'talking'
+  | 'yawning';
+export type MomentTracePhase = 'ready' | 'perceive' | 'correlate' | 'decide' | 'act' | 'verify' | 'artifact' | 'completed';
+export type TraceDmsMode = 'live' | 'local-video' | 'replay-fallback';
 
 export interface DriveState {
   /** L2 辅助驾驶是否开启（驾驶员始终监管） */
@@ -43,6 +71,63 @@ export interface VisionSample {
   /** 面部情绪：与疲劳/PERCLOS 并行，不替代安全判断。 */
   emotion: EmotionId;
   source: 'model' | 'sim';
+}
+
+/** OMS 仅接收透明标注的语义事件；本原型不接收或保存 OMS 原始画面。 */
+export interface OmsObservation {
+  behavior: OmsBehavior;
+  seat: OmsSeat;
+  confidence: number;
+  durationSec: number;
+  source: 'simulated-oms';
+  /** 事件源时间戳；进入内核后以当前仿真时钟为准。 */
+  observedAt: number;
+}
+
+export interface OmsHistoryItem extends OmsObservation {
+  id: number;
+  risk: OmsRisk;
+}
+
+export interface OmsResponse {
+  active: boolean;
+  speedCapKmh: number | null;
+  followingGap: 'normal' | 'extended';
+}
+
+export interface OmsState {
+  active: OmsObservation | null;
+  risk: OmsRisk;
+  stale: boolean;
+  lastUpdatedAt: number | null;
+  awaitingConfirmation: boolean;
+  response: OmsResponse;
+  history: OmsHistoryItem[];
+}
+
+export interface MomentTraceRecord {
+  createdAt: number;
+  sources: {
+    dms: 'live-local' | 'local-video' | 'replay-fallback';
+    oms: 'simulated-oms';
+  };
+  input: {
+    dms: VisionSample | null;
+    oms: OmsObservation | null;
+  };
+  decision: string;
+  actions: string[];
+  verification: {
+    omsClear: boolean;
+    dmsForward: boolean;
+    driverConfirmed: boolean;
+  };
+}
+
+export interface MomentTraceState {
+  phase: MomentTracePhase;
+  dmsMode: TraceDmsMode;
+  record: MomentTraceRecord | null;
 }
 
 export interface DriverState {
@@ -128,6 +213,9 @@ export interface Stats {
   urgentAlerts: number;
   contextAssist: number;
   contextVerified: number;
+  omsEvents: number;
+  omsUrgent: number;
+  momentTraces: number;
 }
 
 export interface CockpitState {
@@ -139,6 +227,8 @@ export interface CockpitState {
   driver: DriverState;
   cabin: CabinState;
   context: ContextState;
+  oms: OmsState;
+  momentTrace: MomentTraceState;
   chat: ChatMsg[];
   alerts: AlertItem[];
   pending: PendingChoice | null;

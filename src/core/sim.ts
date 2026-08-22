@@ -1,5 +1,6 @@
 import { P } from './params';
 import type { CockpitState, RoadKind } from './types';
+import { createMomentTraceState, createOmsState } from './oms';
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
 
@@ -47,6 +48,8 @@ export function createState(scenario: CockpitState['scenario']): CockpitState {
       memory: [],
       events: [],
     },
+    oms: createOmsState(),
+    momentTrace: createMomentTraceState(),
     chat: [],
     alerts: [],
     pending: null,
@@ -60,6 +63,9 @@ export function createState(scenario: CockpitState['scenario']): CockpitState {
       urgentAlerts: 0,
       contextAssist: 0,
       contextVerified: 0,
+      omsEvents: 0,
+      omsUrgent: 0,
+      momentTraces: 0,
     },
   };
 }
@@ -77,8 +83,12 @@ export function targetSpeedOf(s: CockpitState): number {
   if (s.drive.l2Degraded) k *= P.speedTrim.l2Degraded;
   if (s.driver.emotion <= P.emotionTh.low) k *= P.speedTrim.lowEmotion;
   if (s.driver.resting) return 0;
-  if (!s.drive.auto) return s.drive.road === 'city' ? P.roadSpeed.city : s.drive.road === 'highway' ? P.roadSpeed.highway : P.roadSpeed.congested;
-  return roadBase(s.drive.road) * k;
+  const base = s.scenario === 'cabin-safety'
+    ? P.oms.cruiseSpeedKmh * k
+    : !s.drive.auto
+    ? s.drive.road === 'city' ? P.roadSpeed.city : s.drive.road === 'highway' ? P.roadSpeed.highway : P.roadSpeed.congested
+    : roadBase(s.drive.road) * k;
+  return s.oms.response.speedCapKmh === null ? base : Math.min(base, s.oms.response.speedCapKmh);
 }
 
 function fatigueRateOf(s: CockpitState): number {

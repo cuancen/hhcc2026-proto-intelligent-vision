@@ -1,6 +1,16 @@
-import type { CockpitActions } from '../core';
+import { P } from '../core';
+import type { CockpitActions, TraceDmsMode, VisionSample } from '../core';
 
 export type DemoCue =
+  | 'oms-cruise'
+  | 'oms-candidate'
+  | 'oms-prompt'
+  | 'oms-correlate'
+  | 'oms-decide'
+  | 'oms-urgent'
+  | 'oms-clear'
+  | 'oms-verify'
+  | 'moment-trace'
   | 'commute'
   | 'fatigue-monitoring'
   | 'fatigue-care'
@@ -9,44 +19,53 @@ export type DemoCue =
   | 'complex-roads'
   | 'conditions-ease'
   | 'voice-command'
+  | 'cabin-memory'
   | 'completed';
 
 export type DemoTransportState = 'ready' | 'running' | 'paused' | 'completed';
 
-/** 演示讲解步骤：cue 稳定驱动三维镜头，标题与注释只承担叙事。 */
 export interface DemoStep {
   i: number;
   total: number;
   cue: DemoCue;
   title: string;
   note: string;
+  voice?: boolean;
 }
+
+type StepGate = 'away' | 'forward' | 'confirmation';
 
 export interface DemoStepDefinition {
   sec: number;
   cue: DemoCue;
   title: string;
   note: string;
+  voice?: boolean;
+  gate?: StepGate;
+  maxWaitSec?: number;
 }
 
-export const DEMO_DURATION_SEC = 60;
+export const DEMO_DURATION_SEC = 35;
 
-/** Git 基线三幕自动演示：每个节点只触发一次，同时驱动领域动作和电影镜头。 */
+/** OMS MomentTrace 主线：理想时长 35 秒；主动选择的端侧输入可参与条件推进。 */
 export const DEMO_STEPS: readonly DemoStepDefinition[] = [
-  { sec: 0.5, cue: 'commute', title: 'Scene 1 · City Commute', note: 'Face-ID greeting and preference-based cabin setup show EVA’s proactive service.' },
-  { sec: 9, cue: 'fatigue-monitoring', title: 'Scene 2 · Fatigue Guard', note: 'Highway and L2 assistance combine blink, PERCLOS and head pose with driving workload.' },
-  { sec: 13, cue: 'fatigue-care', title: 'Mild fatigue 62 · Gentle care', note: 'Crossing the 60 care line adjusts ventilation, temperature and audio without nagging.' },
-  { sec: 19, cue: 'fatigue-urgent', title: 'Severe fatigue 88 · Urgent intervention', note: 'Crossing the 85 urgent line raises an alert and leaves the rest decision to the driver.' },
-  { sec: 23, cue: 'fatigue-rest', title: 'Driver chooses Rest now', note: 'Rest mode coordinates the cabin while EVA guides the driver toward a safe break.' },
-  { sec: 30, cue: 'complex-roads', title: 'Scene 3 · Complex Roads', note: 'Rain, night and congestion coordinate cautious cabin and L2 responses.' },
-  { sec: 46, cue: 'conditions-ease', title: 'Conditions ease', note: 'Entertainment and regular cabin services return when the road context becomes safe again.' },
-  { sec: 52, cue: 'voice-command', title: 'Natural voice command', note: 'The same cockpit kernel answers navigation, temperature, music, massage and L2 requests.' },
-  { sec: 58, cue: 'completed', title: 'Demo complete', note: 'Three scenes, one on-device perception and assistance system, with the driver always in charge.' },
+  { sec: 0.5, cue: 'oms-cruise', title: 'OMS MomentTrace · Cabin in motion', note: 'MomentTrace is ready. DMS stays local, OMS is simulated, and you remain in charge.' },
+  { sec: 4, cue: 'oms-candidate', title: 'OMS · Rear-right movement', note: 'Rear-right movement detected.' },
+  { sec: 6, cue: 'oms-prompt', title: 'EVA · Check rear right', note: 'Check the rear-right seat, while keeping the road supervised.' },
+  { sec: 10, cue: 'oms-correlate', title: 'DMS × OMS · Cause linked', note: 'Your glance matches the rear-right event, while fatigue evidence stays normal.', gate: 'away', maxWaitSec: 6 },
+  { sec: 13, cue: 'oms-decide', title: 'Decision · Not fatigue', note: 'PERCLOS is normal. This response is not fatigue.', voice: false },
+  { sec: 15, cue: 'oms-urgent', title: 'Risk confirmed · 1.2 s', note: 'Rear-right passenger, move fully inside. I am reducing speed.' },
+  { sec: 23, cue: 'oms-clear', title: 'OMS · Occupant recovered', note: 'Passenger inside. I am checking that your attention is forward.' },
+  { sec: 29, cue: 'oms-verify', title: 'DMS · Eyes forward', note: 'Eyes forward. Please confirm that the cabin is safe.', gate: 'forward', maxWaitSec: 6 },
+  { sec: 32, cue: 'moment-trace', title: 'MomentTrace · Closed loop', note: 'Closed loop recorded, with every source clearly identified.', gate: 'confirmation' },
+  { sec: 35, cue: 'completed', title: 'MomentTrace complete', note: 'MomentTrace complete.', voice: false },
 ];
 
 export interface AutoDemoDeps {
   act: CockpitActions;
-  ensureSimVision: () => void;
+  traceDmsMode: TraceDmsMode;
+  getVision: () => VisionSample | null;
+  activateReplayDms: () => void;
   setSpeed: (v: number) => void;
   setSimulationRunning?: (running: boolean) => void;
   onStep?: (step: DemoStep) => void;
@@ -61,12 +80,26 @@ export interface AutoDemoHandle {
   resume(): void;
   restart(): void;
   stop(): void;
+  confirmSafety(): void;
   getState(): DemoTransportState;
+  getTraceDmsMode(): TraceDmsMode;
 }
+
+const isAwayEvidence = (sample: VisionSample | null) => !!sample?.present
+  && sample.lookAwaySec >= 1.2
+  && (Math.abs(sample.yaw) > 22 || Math.abs(sample.pitch) > 18)
+  && sample.perclos < P.perclosTh.warn;
+
+const isForwardEvidence = (sample: VisionSample | null) => !!sample?.present
+  && sample.lookAwaySec < 0.1
+  && Math.abs(sample.yaw) <= 22
+  && Math.abs(sample.pitch) <= 18;
 
 export function runAutoDemo({
   act,
-  ensureSimVision,
+  traceDmsMode: initialTraceDmsMode,
+  getVision,
+  activateReplayDms,
   setSpeed,
   setSimulationRunning = () => undefined,
   onStep,
@@ -77,11 +110,14 @@ export function runAutoDemo({
 }: AutoDemoDeps): AutoDemoHandle {
   let timer: ReturnType<typeof globalThis.setInterval> | null = null;
   let transport: DemoTransportState = 'ready';
+  let traceDmsMode = initialTraceDmsMode;
   let elapsedMs = 0;
   let startedAt = 0;
   let lastPumpAt: number | null = null;
-  const fired = new Set<number>();
-  const total = DEMO_STEPS.length;
+  let scheduleShiftMs = 0;
+  let nextIndex = 0;
+  let forwardSince: number | null = null;
+  let safetyConfirmed = false;
 
   const clearTimer = () => {
     if (timer === null) return;
@@ -95,26 +131,61 @@ export function runAutoDemo({
     onTransport?.(next);
   };
 
-  const actions: ReadonlyArray<() => void> = [
-    () => undefined,
-    () => act.scenario('fatigue'),
-    () => act.setSimFatigue(62),
-    () => act.setSimFatigue(88),
-    () => { act.reply('rest'); act.setSimFatigue(12); },
-    () => act.scenario('complex'),
-    () => act.scenario('commute'),
-    () => act.command('How much longer is the route?'),
-    () => undefined,
-  ];
-
   const currentElapsedMs = () => elapsedMs + (transport === 'running' ? now() - startedAt : 0);
 
+  const switchToReplay = () => {
+    if (traceDmsMode === 'replay-fallback') return;
+    traceDmsMode = 'replay-fallback';
+    activateReplayDms();
+    act.setMomentTraceDmsMode('replay-fallback');
+  };
+
+  const stepAction = (cue: DemoCue) => {
+    if (cue === 'oms-correlate') act.setMomentTracePhase('correlate');
+    if (cue === 'oms-decide') act.setMomentTracePhase('decide');
+    if (cue === 'oms-candidate') {
+      act.observeOms({ behavior: 'head-outside-window', seat: 'rear-right', confidence: 0.78, durationSec: 0.4, source: 'simulated-oms', observedAt: 0 });
+    }
+    if (cue === 'oms-urgent') {
+      act.observeOms({ behavior: 'body-outside-window', seat: 'rear-right', confidence: 0.96, durationSec: 1.2, source: 'simulated-oms', observedAt: 0 });
+      act.setMomentTracePhase('act');
+    }
+    if (cue === 'oms-clear') act.clearOms();
+    if (cue === 'oms-verify') act.setMomentTracePhase('verify');
+    if (cue === 'moment-trace') act.setMomentTracePhase('artifact');
+    if (cue === 'completed') act.setMomentTracePhase('completed');
+  };
+
   const complete = () => {
-    elapsedMs = DEMO_DURATION_SEC * 1000;
+    elapsedMs = Math.max(elapsedMs, DEMO_DURATION_SEC * 1000 + scheduleShiftMs);
     clearTimer();
     setSpeed(1);
     setTransport('completed');
     onComplete?.();
+  };
+
+  const gateOpen = (definition: DemoStepDefinition, tickAt: number, dueMs: number) => {
+    if (!definition.gate) return true;
+    if (definition.gate === 'confirmation') return safetyConfirmed;
+
+    const sample = getVision();
+    if (traceDmsMode === 'replay-fallback') return true;
+    if (definition.gate === 'away' && isAwayEvidence(sample)) return true;
+    if (definition.gate === 'forward') {
+      if (isForwardEvidence(sample)) {
+        if (forwardSince === null) forwardSince = tickAt;
+        if (tickAt - forwardSince >= 1_500) return true;
+      } else {
+        forwardSince = null;
+      }
+    }
+
+    const maxWaitMs = (definition.maxWaitSec ?? 0) * 1000;
+    if (maxWaitMs > 0 && currentElapsedMs() >= dueMs + maxWaitMs) {
+      switchToReplay();
+      return true;
+    }
+    return false;
   };
 
   const pump = () => {
@@ -122,29 +193,22 @@ export function runAutoDemo({
     const tickAt = now();
     if (lastPumpAt !== null) {
       const gap = tickAt - lastPumpAt;
-      // 只剔除模型解码/标签页恢复级别的长阻塞；低性能设备的普通慢帧仍按真实时间前进。
       const stallThreshold = Math.max(4_000, intervalMs * 20);
-      if (gap > stallThreshold) {
-        // 模型解码、后台恢复等长任务期间没有可见画面；把这段时间从电影时间轴中剔除，避免多个镜头同帧跳过。
-        startedAt += gap - intervalMs;
-      }
+      if (gap > stallThreshold) startedAt += gap - intervalMs;
     }
     lastPumpAt = tickAt;
-    const elapsedSec = (elapsedMs + tickAt - startedAt) / 1000;
-    const index = DEMO_STEPS.findIndex((definition, candidate) => !fired.has(candidate) && definition.sec <= elapsedSec);
-    if (index >= 0) {
-      const definition = DEMO_STEPS[index];
-      fired.add(index);
-      onStep?.({
-        i: index + 1,
-        total,
-        cue: definition.cue,
-        title: definition.title,
-        note: definition.note,
-      });
-      actions[index]?.();
-    }
-    if (elapsedSec >= DEMO_DURATION_SEC && fired.size === total) complete();
+
+    const definition = DEMO_STEPS[nextIndex];
+    if (!definition) return;
+    const elapsed = currentElapsedMs();
+    const dueMs = definition.sec * 1000 + scheduleShiftMs;
+    if (elapsed < dueMs || !gateOpen(definition, tickAt, dueMs)) return;
+
+    if (definition.gate && elapsed > dueMs) scheduleShiftMs += elapsed - dueMs;
+    onStep?.({ i: nextIndex + 1, total: DEMO_STEPS.length, cue: definition.cue, title: definition.title, note: definition.note, voice: definition.voice });
+    stepAction(definition.cue);
+    nextIndex += 1;
+    if (definition.cue === 'completed') complete();
   };
 
   const beginInterval = () => {
@@ -155,13 +219,14 @@ export function runAutoDemo({
   const restart = () => {
     clearTimer();
     elapsedMs = 0;
-    fired.clear();
-    // 0.15× 让复杂路况内部的 4.2 仿真分钟事件在 16 秒幕长内完成，同时避免路线归零。
+    scheduleShiftMs = 0;
+    nextIndex = 0;
+    forwardSince = null;
+    safetyConfirmed = false;
     setSpeed(0.15);
     act.reset();
-    // reset() 默认保留当前手动场景；自动巡演必须始终从通勤基线重播。
-    act.scenario('commute');
-    ensureSimVision();
+    act.scenario('cabin-safety');
+    act.beginMomentTrace(traceDmsMode);
     startedAt = now();
     lastPumpAt = startedAt;
     setTransport('running');
@@ -191,8 +256,17 @@ export function runAutoDemo({
       setSpeed(1);
       setTransport('ready');
     },
+    confirmSafety() {
+      if (safetyConfirmed) return;
+      act.confirmOmsClear();
+      safetyConfirmed = true;
+      pump();
+    },
     getState() {
       return transport;
+    },
+    getTraceDmsMode() {
+      return traceDmsMode;
     },
   };
 
