@@ -2,6 +2,10 @@
 
 > [English project guide](README_EN.md) · HHCC 2026 Prototype Development Track · Built during the official development period
 
+**Official public competition repository:** [cuancen/hhcc2026-proto-intelligent-vision](https://github.com/cuancen/hhcc2026-proto-intelligent-vision)
+
+**Team staging mirror:** [b1207739631-rgb/hhcc-2026-prototype](https://github.com/b1207739631-rgb/hhcc-2026-prototype)
+
 EVA is an explainable in-cabin agent that combines on-device driver monitoring, workload fatigue, cabin actuation, and L2 assistance into one three-act digital-twin demonstration: **City Commute, Fatigue Guard, and Complex Roads**.
 
 ## Safety positioning

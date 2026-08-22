@@ -3,6 +3,10 @@
 > **[中文版](README.md)** | Geely Hackathon · Prototype Development Track (built from scratch within the official development window)
 > Core idea: **Machine Vision × Smart Cockpit** — Cabin Perception, Human Protection: EVA unifies on-device DMS, workload fatigue and cabin/L2 responses in one explainable three-act digital-twin demonstration.
 
+**Official public competition repository:** [cuancen/hhcc2026-proto-intelligent-vision](https://github.com/cuancen/hhcc2026-proto-intelligent-vision)
+
+**Team staging mirror:** [b1207739631-rgb/hhcc-2026-prototype](https://github.com/b1207739631-rgb/hhcc-2026-prototype)
+
 ## Positioning Statement (Important)
 
 Eva is positioned as **L2 combined driving assistance** (driver monitoring + adaptive cruise + lane centering):

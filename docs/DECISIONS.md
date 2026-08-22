@@ -23,9 +23,9 @@
 ## D-004 - Publish a public remote repository
 
 - **Date:** 2026-08-22
-- **Status:** Accepted
-- **Decision:** Use `https://github.com/b1207739631-rgb/hhcc-2026-prototype` as the public remote, with `main` as the default branch.
-- **Reason:** This satisfies the public-code-repository requirement and provides a visible official-period development record.
+- **Status:** Superseded by D-011
+- **Decision:** Initially use `https://github.com/b1207739631-rgb/hhcc-2026-prototype` as the milestone remote, with `main` as the default branch.
+- **Reason:** This created a reviewable official-period development record before the designated competition repository became writable.
 
 ## D-005 - Synchronize verified milestones, not every save
 
@@ -68,3 +68,10 @@
 - **Status:** Accepted
 - **Decision:** Upgrade Vite to 8.2.2, the React plugin to 6.1.0, and Vitest to 4.1.11 before publishing the runnable checkpoint; require Node.js 20.19+ or 22.12+.
 - **Reason:** The imported lockfile reported five known development-server and test-runner vulnerabilities, including one critical advisory. The upgraded toolchain removes the audit findings while keeping the application and regression suite unchanged.
+
+## D-011 - Designate the official public competition repository
+
+- **Date:** 2026-08-22
+- **Status:** Accepted
+- **Decision:** Use `https://github.com/cuancen/hhcc2026-proto-intelligent-vision` as the official public competition repository. Retain `https://github.com/b1207739631-rgb/hhcc-2026-prototype` as the team staging mirror and synchronize only verified milestones to both `main` branches.
+- **Reason:** The team confirmed that the `cuancen` repository is the public submission target. Keeping the staging mirror preserves the verified handoff while the public repository remains the authoritative URL for judges.
