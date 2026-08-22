@@ -51,7 +51,7 @@ export default function BootSplash({ onDone }: BootSplashProps) {
         </div>
       </div>
       <h2>EVA · 智能座舱</h2>
-      <p className="boot-slogan">从智能驾驶 到 人车共生</p>
+      <p className="boot-slogan">看见原因 · 闭环解决</p>
       <ul className="boot-checks">
         {BOOT_SEQUENCE.map((item, k) => (
           <li key={item} className={k < lit ? 'on' : ''}>

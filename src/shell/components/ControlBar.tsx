@@ -65,7 +65,7 @@ export default function ControlBar({ snap, act, speed, setSpeed, autoDemoRunning
           className={`btn${autoDemoRunning ? ' active' : ''}`}
           aria-pressed={autoDemoRunning}
           onClick={onToggleAutoDemo}
-          title="自动走完三大场景（约 60 秒），快捷键 D"
+          title="自动走完 EVA Vision Loop 情境闭环（约 60 秒），快捷键 D"
         >
           {autoDemoRunning ? '■ 停止演示' : '▶ 自动演示'}
         </button>
@@ -75,7 +75,7 @@ export default function ControlBar({ snap, act, speed, setSpeed, autoDemoRunning
           </button>
         ))}
         <button type="button" className="btn small" onClick={() => act.reset()} title="复位当前场景">⟲ 复位</button>
-        <span className="grp-label" style={{ marginLeft: 4 }}>快捷键 1/2/3 场景 · D 演示 · L 辅助</span>
+        <span className="grp-label" style={{ marginLeft: 4 }}>快捷键 1/2/3/4 场景 · D 演示 · L 辅助</span>
       </div>
     </footer>
   );

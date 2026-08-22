@@ -8,7 +8,7 @@
 src/core/     内核：sim 仿真 / evaRules 规则引擎 / params 参数唯一出处（零 DOM）
 src/vision/   机器视觉：metrics 纯函数 / dms MediaPipe 引擎 / simVision 模拟回退
 src/shell/    UI：hooks（useCockpit/useDms/useUiPrefs）+ components
-tests/        vitest：core.test.ts 16 项 + vision.test.ts 8 项
+tests/        vitest：core 21 项 + vision 9 项 + shell/交互 18 项（共 48 项）
 public/       自托管模型 models/face_landmarker.task；mediapipe-wasm/ 由 postinstall 生成（不入库）
 docs/PIPELINE.md  参数表/数据流/演示剧本（改参数必须同步）
 ```
@@ -16,11 +16,11 @@ docs/PIPELINE.md  参数表/数据流/演示剧本（改参数必须同步）
 ## 验证流程（每次改动必做）
 
 ```bash
-npm test        # 24 项回归必须全绿
+npm test        # 48 项回归必须全绿
 npm run build   # tsc --noEmit + vite build
 ```
 
-改 `src/core/params.ts` 任何阈值：① 跑测试 ② 同步 `docs/PIPELINE.md` 参数表 ③ 手动过三场景（自动演示 60s）。
+改 `src/core/params.ts` 任何阈值：① 跑测试 ② 同步 `docs/PIPELINE.md` 参数表 ③ 手动过 EVA Vision Loop 主闭环与三个保留场景。
 
 ## 架构铁律
 

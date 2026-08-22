@@ -7,6 +7,7 @@ import {
   earOf,
   headPoseOf,
 } from '../src/vision/metrics';
+import { simulatedEarAt } from '../src/vision/simVision';
 
 /** 依据索引构造合成关键点：open=true 生成睁开眼（EAR≈0.38），否则闭眼（EAR≈0.02） */
 function synthEye(open: boolean) {
@@ -75,6 +76,14 @@ describe('头部姿态解算', () => {
 });
 
 describe('PERCLOS 追踪器', () => {
+  it('模拟视觉冷启动从睁眼相位开始，不因首帧闭眼产生 100% PERCLOS 误报', () => {
+    const tr = createPerclosTracker(30);
+    let state = tr.feed(0, simulatedEarAt(0, 8));
+    expect(simulatedEarAt(0, 8)).toBeGreaterThan(EAR_CLOSED);
+    for (let i = 1; i <= 10; i++) state = tr.feed(i / 10, simulatedEarAt(i / 10, 8));
+    expect(state.perclos).toBeLessThan(0.25);
+  });
+
   it('持续闭眼 → 窗口占比≈1；睁闭各半 → ≈0.5', () => {
     const tr = createPerclosTracker(30);
     let st = tr.feed(0, 0.3);

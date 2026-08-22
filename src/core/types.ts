@@ -4,6 +4,10 @@ export type RoadKind = 'city' | 'highway' | 'congested';
 export type AlertLevel = 'info' | 'warn' | 'urgent';
 export type EvaMode = '观察中' | '守护中' | '干预中' | '休息引导中' | '谨慎模式';
 export type MusicKind = '轻音乐' | '动感' | '新闻' | '关闭';
+export type CabinObjectId = 'parking-card' | 'phone' | 'laptop-bag' | 'water-bottle';
+export type ContextPhase = 'idle' | 'observed' | 'searching' | 'assisting' | 'verified' | 'exit-check' | 'exit-reminded';
+export type ContextStage = '看见' | '理解' | '行动' | '确认' | '提醒';
+export type ObjectImportance = 'normal' | 'important';
 
 export interface DriveState {
   /** L2 辅助驾驶是否开启（驾驶员始终监管） */
@@ -54,6 +58,40 @@ export interface CabinState {
   seatMassage: boolean;
   ambient: string;
   entertainmentBlocked: boolean;
+  readingLight: '关闭' | '主驾左侧';
+}
+
+/** 物品视觉仅以语义事件进入内核；比赛原型明确标记为模拟输入，不保存原始画面。 */
+export interface CabinObjectObservation {
+  id: CabinObjectId;
+  label: string;
+  location: string;
+  owner: string;
+  importance: ObjectImportance;
+  confidence: number;
+}
+
+export interface CabinMemoryItem extends CabinObjectObservation {
+  source: 'simulated-event';
+  lastSeenAt: number;
+  present: boolean;
+}
+
+export interface ContextEvent {
+  id: number;
+  t: number;
+  stage: ContextStage;
+  text: string;
+}
+
+export interface ContextState {
+  phase: ContextPhase;
+  targetId: CabinObjectId | null;
+  cause: string | null;
+  assistance: string | null;
+  resolved: boolean;
+  memory: CabinMemoryItem[];
+  events: ContextEvent[];
 }
 
 export interface ChatMsg {
@@ -84,6 +122,8 @@ export interface Stats {
   cabinAdj: number;
   warnAlerts: number;
   urgentAlerts: number;
+  contextAssist: number;
+  contextVerified: number;
 }
 
 export interface CockpitState {
@@ -94,6 +134,7 @@ export interface CockpitState {
   drive: DriveState;
   driver: DriverState;
   cabin: CabinState;
+  context: ContextState;
   chat: ChatMsg[];
   alerts: AlertItem[];
   pending: PendingChoice | null;

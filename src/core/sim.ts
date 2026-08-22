@@ -36,11 +36,31 @@ export function createState(scenario: CockpitState['scenario']): CockpitState {
       seatMassage: false,
       ambient: '青碧',
       entertainmentBlocked: false,
+      readingLight: '关闭',
+    },
+    context: {
+      phase: 'idle',
+      targetId: null,
+      cause: null,
+      assistance: null,
+      resolved: false,
+      memory: [],
+      events: [],
     },
     chat: [],
     alerts: [],
     pending: null,
-    stats: { proact: 0, risk: 0, rest: 0, cmd: 0, cabinAdj: 0, warnAlerts: 0, urgentAlerts: 0 },
+    stats: {
+      proact: 0,
+      risk: 0,
+      rest: 0,
+      cmd: 0,
+      cabinAdj: 0,
+      warnAlerts: 0,
+      urgentAlerts: 0,
+      contextAssist: 0,
+      contextVerified: 0,
+    },
   };
 }
 

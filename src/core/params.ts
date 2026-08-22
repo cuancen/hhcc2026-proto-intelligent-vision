@@ -1,6 +1,6 @@
 /**
  * 集中参数表 —— 所有业务阈值唯一出处。
- * 修改任何阈值必须：① 跑 `npm test` 回归 ② 同步 docs/PIPELINE.md 参数表 ③ 过一遍三场景。
+ * 修改任何阈值必须：① 跑 `npm test` 回归 ② 同步 docs/PIPELINE.md 参数表 ③ 过一遍主闭环与三个保留场景。
  * 注：本产品定位为 **L2 辅助驾驶**（驾驶员始终承担监管责任），不涉及 L3 及以上自动驾驶表述。
  */
 export const P = {
@@ -43,9 +43,10 @@ export const P = {
 } as const;
 
 export const SCENARIOS = {
-  commute: { label: '☀ 日常通勤', desc: '上车问候 · 身份识别 · 习惯路线 · 专属座舱氛围' },
-  fatigue: { label: '😮‍💨 疲劳守护', desc: '视觉 PERCLOS + 仿真疲劳双通道 → 分级干预' },
-  complex: { label: '⛈ 复杂路况', desc: '雨夜 + 拥堵 + 弯道 → 舱驾协同谨慎模式' },
+  visionLoop: { label: '情境闭环', desc: '模拟物品事件 + 真实 DMS → 理解原因、行动并确认' },
+  commute: { label: '日常通勤', desc: '上车问候 · 身份识别 · 习惯路线 · 专属座舱氛围' },
+  fatigue: { label: '疲劳守护', desc: '视觉 PERCLOS + 仿真疲劳双通道 → 分级干预' },
+  complex: { label: '复杂路况', desc: '雨夜 + 拥堵 + 弯道 → 舱驾协同谨慎模式' },
 } as const;
 
 export type ScenarioId = keyof typeof SCENARIOS;

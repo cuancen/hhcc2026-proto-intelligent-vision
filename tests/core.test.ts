@@ -136,6 +136,94 @@ describe('机器视觉通道（DMS 融合）', () => {
   });
 });
 
+describe('EVA Vision Loop：情境记忆与闭环确认', () => {
+  it('只保存语义物品事件，不保存原始画面', () => {
+    const api = createCockpit();
+    api.actions.observeCabinObject({
+      id: 'parking-card',
+      label: '停车卡',
+      location: '左侧车门储物格',
+      owner: '驾驶员',
+      importance: 'important',
+      confidence: 0.94,
+    });
+
+    expect(api.state.context.memory).toHaveLength(1);
+    expect(api.state.context.memory[0]).toMatchObject({
+      id: 'parking-card',
+      location: '左侧车门储物格',
+      source: 'simulated-event',
+    });
+    expect(api.state.context.events.at(-1)?.stage).toBe('看见');
+    expect(JSON.stringify(api.state.context)).not.toContain('frame');
+    expect(JSON.stringify(api.state.context)).not.toContain('video');
+  });
+
+  it('已知寻找原因时给出具体位置并打开对应阅读灯，而非只发通用分神提醒', () => {
+    const api = createCockpit();
+    api.actions.scenario('fatigue');
+    api.actions.observeCabinObject({
+      id: 'parking-card',
+      label: '停车卡',
+      location: '左侧车门储物格',
+      owner: '驾驶员',
+      importance: 'important',
+      confidence: 0.94,
+    });
+    api.actions.beginObjectSearch('parking-card');
+    api.actions.setVision(idleVision({ lookAwaySec: 2.4, yaw: -32 }));
+    api.step(0.2);
+
+    expect(api.state.context.phase).toBe('assisting');
+    expect(api.state.context.cause).toContain('停车卡');
+    expect(api.state.cabin.readingLight).toBe('主驾左侧');
+    expect(api.state.chat.some((c) => c.text.includes('停车卡') && c.text.includes('左侧车门储物格'))).toBe(true);
+    expect(api.state.alerts.some((a) => a.text === '检测到视线离开前方，请注意路面。')).toBe(false);
+    expect(api.state.context.events.some((e) => e.stage === '理解')).toBe(true);
+    expect(api.state.context.events.some((e) => e.stage === '行动')).toBe(true);
+  });
+
+  it('驾驶员回正后视觉确认风险解除并关闭阅读灯', () => {
+    const api = createCockpit();
+    api.actions.observeCabinObject({
+      id: 'parking-card',
+      label: '停车卡',
+      location: '左侧车门储物格',
+      owner: '驾驶员',
+      importance: 'important',
+      confidence: 0.94,
+    });
+    api.actions.beginObjectSearch('parking-card');
+    api.actions.setVision(idleVision({ lookAwaySec: 2.4, yaw: -32 }));
+    api.step(0.2);
+    api.actions.setVision(idleVision({ lookAwaySec: 0.1, yaw: 1 }));
+    api.step(0.2);
+
+    expect(api.state.context.phase).toBe('verified');
+    expect(api.state.context.resolved).toBe(true);
+    expect(api.state.cabin.readingLight).toBe('关闭');
+    expect(api.state.context.events.at(-1)?.stage).toBe('确认');
+    expect(api.state.stats.contextVerified).toBe(1);
+  });
+
+  it('离车检查只提醒重要物品，普通水杯保持沉默', () => {
+    const api = createCockpit();
+    api.actions.observeCabinObject({
+      id: 'laptop-bag', label: '电脑包', location: '右后座', owner: '驾驶员', importance: 'important', confidence: 0.91,
+    });
+    api.actions.observeCabinObject({
+      id: 'water-bottle', label: '水杯', location: '杯架', owner: '驾驶员', importance: 'normal', confidence: 0.98,
+    });
+    api.actions.requestExitCheck();
+    api.step(0.2);
+
+    const latest = api.state.chat.at(-1)?.text ?? '';
+    expect(latest).toContain('电脑包');
+    expect(latest).not.toContain('水杯');
+    expect(api.state.context.phase).toBe('exit-reminded');
+  });
+});
+
 describe('复杂路况舱驾协同', () => {
   it('因子 ≥2 屏蔽娱乐进入谨慎模式，缓解后恢复', () => {
     const api = createCockpit();

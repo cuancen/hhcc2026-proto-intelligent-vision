@@ -1,6 +1,16 @@
 import { createState, stepSim } from './sim';
-import { applyScenario, createCtx, handleCommand, handleReply, runRules, setAuto } from './evaRules';
-import type { CockpitState, VisionSample } from './types';
+import {
+  applyScenario,
+  beginObjectSearch,
+  createCtx,
+  handleCommand,
+  handleReply,
+  observeCabinObject,
+  requestExitCheck,
+  runRules,
+  setAuto,
+} from './evaRules';
+import type { CabinObjectId, CabinObjectObservation, CockpitState, VisionSample } from './types';
 
 export * from './types';
 export * from './params';
@@ -18,6 +28,10 @@ export interface CockpitActions {
   reply(key: string): void;
   /** 视觉模块每个采样周期写入一次 DMS 信号 */
   setVision(sample: VisionSample | null): void;
+  /** 透明标注的模拟物品视觉事件：仅写入语义，不保存原始画面。 */
+  observeCabinObject(observation: CabinObjectObservation): void;
+  beginObjectSearch(id: CabinObjectId): void;
+  requestExitCheck(): void;
   reset(): void;
 }
 
@@ -70,6 +84,15 @@ export function createCockpit(): Cockpit {
       },
       setVision(sample) {
         state.driver.vision = sample;
+      },
+      observeCabinObject(observation) {
+        observeCabinObject(ctx, observation);
+      },
+      beginObjectSearch(id) {
+        beginObjectSearch(ctx, id);
+      },
+      requestExitCheck() {
+        requestExitCheck(ctx);
       },
       reset() {
         const fresh = createState(state.scenario);

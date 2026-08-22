@@ -1,76 +1,207 @@
 import type { CockpitActions } from '../core';
 
-/** 演示讲解步骤：title=正在发生什么，note=给评委的解释（这一段想表达什么） */
+export type DemoCue =
+  | 'boundary'
+  | 'observe-cabin'
+  | 'observe-phone'
+  | 'search-intent'
+  | 'gaze-away'
+  | 'cause-linked'
+  | 'assistance'
+  | 'verified'
+  | 'exit-filter'
+  | 'completed';
+
+export type DemoTransportState = 'ready' | 'running' | 'paused' | 'completed';
+
+/** 演示讲解步骤：cue 稳定驱动三维镜头，标题与注释只承担叙事。 */
 export interface DemoStep {
   i: number;
   total: number;
+  cue: DemoCue;
   title: string;
   note: string;
 }
 
-/**
- * 自动演示剧本：约 60 秒走完三大场景（模拟信号自动开启）。
- * 每步带路演讲解文案，由 DemoBanner 横幅逐步展示给评委；
- * 速率 ×2 压缩仿真时间；随时可停，停下不清理现场（评委可接着手动探索） */
-export const DEMO_STEPS: readonly { sec: number; title: string; note: string }[] = [
-  { sec: 0.5, title: '场景一 · 日常通勤', note: '人脸识别问候 + 按习惯无感调节座舱——Eva 的主动服务' },
-  { sec: 9, title: '场景二 · 疲劳守护', note: '高速 + L2：眨眼 / PERCLOS / 头姿与行车工况双通道监测' },
-  { sec: 13, title: '轻度疲劳 62 → 温柔关怀', note: '越过 60 关怀线：自动通风、降温、轻音乐——分级干预不唠叨' },
-  { sec: 19, title: '重度疲劳 88 → 紧急干预', note: '越过 85 紧急线：紧急告警 + 休息选择分支，决定权交给驾驶员' },
-  { sec: 23, title: '选择「立即休息」', note: '休息模式一键接管座舱；若选择坚持，6 分钟后自动再次提醒' },
-  { sec: 30, title: '场景三 · 复杂路况', note: '雨 + 夜 + 拥堵因子 ≥2：屏蔽娱乐、修正车速——舱驾协同' },
-  { sec: 46, title: '路况缓解', note: '自动恢复娱乐与常规服务——有边界的智能' },
-  { sec: 52, title: '语音指令', note: '自然语言理解：导航 / 冷热 / 音乐 / 按摩 / L2 开关' },
-  { sec: 58, title: '演示结束', note: '欢迎点「开启摄像头监测」体验真实机器视觉（本地推理 · 不上传）' },
+export interface DemoStepDefinition {
+  sec: number;
+  cue: DemoCue;
+  title: string;
+  note: string;
+}
+
+export const DEMO_DURATION_SEC = 60;
+
+/** 60 秒 EVA Vision Loop：每个节点只触发一次，同时驱动领域动作和电影镜头。 */
+export const DEMO_STEPS: readonly DemoStepDefinition[] = [
+  { sec: 0.5, cue: 'boundary', title: '输入透明', note: '驾驶员 DMS 可真实运行；物品位置为模拟视觉事件' },
+  { sec: 4, cue: 'observe-cabin', title: '看见 · 关键物品进入记忆', note: '只保留物品、位置与重要度，不保存原始画面' },
+  { sec: 9, cue: 'observe-phone', title: '位置随事件更新', note: '手机最后出现在无线充电板' },
+  { sec: 16, cue: 'search-intent', title: '驾驶员开始找卡', note: 'EVA 等待视线证据，不急于下结论' },
+  { sec: 19, cue: 'gaze-away', title: '视线持续向左下偏离', note: 'DMS 捕捉头姿与视线离开' },
+  { sec: 22, cue: 'cause-linked', title: '理解 · 找到分心原因', note: '视线方向与停车卡位置形成关联' },
+  { sec: 25, cue: 'assistance', title: '行动 · 直接解决问题', note: '播报位置并打开主驾左侧阅读灯' },
+  { sec: 30, cue: 'verified', title: '确认 · 视线已经回正', note: 'DMS 确认风险解除，阅读灯关闭' },
+  { sec: 46, cue: 'exit-filter', title: '只提醒重要物品', note: '电脑包与手机被点亮，普通水杯保持静默' },
+  { sec: 57, cue: 'completed', title: '闭环完成', note: '看见原因，行动解决，再确认结果' },
 ];
 
 export interface AutoDemoDeps {
   act: CockpitActions;
-  /** 视觉未启用时自动打开模拟信号（链路与真实模型一致） */
   ensureSimVision: () => void;
   setSpeed: (v: number) => void;
-  /** 每步讲解（用于路演讲解横幅） */
+  setSimulationRunning?: (running: boolean) => void;
   onStep?: (step: DemoStep) => void;
+  onTransport?: (state: DemoTransportState) => void;
+  onComplete?: () => void;
+  now?: () => number;
+  intervalMs?: number;
 }
 
 export interface AutoDemoHandle {
+  pause(): void;
+  resume(): void;
+  restart(): void;
   stop(): void;
+  getState(): DemoTransportState;
 }
 
-export function runAutoDemo({ act, ensureSimVision, setSpeed, onStep }: AutoDemoDeps): AutoDemoHandle {
-  const timers: number[] = [];
-  let stopped = false;
+export function runAutoDemo({
+  act,
+  ensureSimVision,
+  setSpeed,
+  setSimulationRunning = () => undefined,
+  onStep,
+  onTransport,
+  onComplete,
+  now = () => Date.now(),
+  intervalMs = 50,
+}: AutoDemoDeps): AutoDemoHandle {
+  let timer: ReturnType<typeof globalThis.setInterval> | null = null;
+  let transport: DemoTransportState = 'ready';
+  let elapsedMs = 0;
+  let startedAt = 0;
+  let lastPumpAt: number | null = null;
+  const fired = new Set<number>();
   const total = DEMO_STEPS.length;
 
-  const at = (idx: number, fn: () => void) => {
-    const { sec, title, note } = DEMO_STEPS[idx];
-    timers.push(
-      window.setTimeout(() => {
-        if (stopped) return;
-        onStep?.({ i: idx + 1, total, title, note });
-        fn();
-      }, sec * 1000),
-    );
+  const clearTimer = () => {
+    if (timer === null) return;
+    globalThis.clearInterval(timer);
+    timer = null;
   };
 
-  setSpeed(2);
-  ensureSimVision();
+  const setTransport = (next: DemoTransportState) => {
+    transport = next;
+    setSimulationRunning(next === 'running');
+    onTransport?.(next);
+  };
 
-  at(0, () => { act.scenario('commute'); });
-  at(1, () => { act.scenario('fatigue'); });
-  at(2, () => { act.setSimFatigue(62); });
-  at(3, () => { act.setSimFatigue(88); });
-  at(4, () => { act.reply('rest'); act.setSimFatigue(12); });
-  at(5, () => { act.scenario('complex'); });
-  at(6, () => { act.scenario('commute'); });
-  at(7, () => { act.command('导航还有多久'); });
-  at(8, () => { setSpeed(1); });
+  const actions: ReadonlyArray<() => void> = [
+    () => undefined,
+    () => {
+      act.observeCabinObject({ id: 'parking-card', label: '停车卡', location: '左侧车门储物格', owner: '驾驶员', importance: 'normal', confidence: 0.94 });
+      act.observeCabinObject({ id: 'laptop-bag', label: '电脑包', location: '右后座', owner: '驾驶员', importance: 'important', confidence: 0.91 });
+      act.observeCabinObject({ id: 'water-bottle', label: '水杯', location: '杯架', owner: '驾驶员', importance: 'normal', confidence: 0.98 });
+    },
+    () => act.observeCabinObject({ id: 'phone', label: '手机', location: '无线充电板', owner: '驾驶员', importance: 'important', confidence: 0.96 }),
+    () => act.beginObjectSearch('parking-card'),
+    () => undefined,
+    () => undefined,
+    () => undefined,
+    () => undefined,
+    () => act.requestExitCheck(),
+    () => undefined,
+  ];
 
-  return {
+  const currentElapsedMs = () => elapsedMs + (transport === 'running' ? now() - startedAt : 0);
+
+  const complete = () => {
+    elapsedMs = DEMO_DURATION_SEC * 1000;
+    clearTimer();
+    setSpeed(1);
+    setTransport('completed');
+    onComplete?.();
+  };
+
+  const pump = () => {
+    if (transport !== 'running') return;
+    const tickAt = now();
+    if (lastPumpAt !== null) {
+      const gap = tickAt - lastPumpAt;
+      // 只剔除模型解码/标签页恢复级别的长阻塞；低性能设备的普通慢帧仍按真实时间前进。
+      const stallThreshold = Math.max(4_000, intervalMs * 20);
+      if (gap > stallThreshold) {
+        // 模型解码、后台恢复等长任务期间没有可见画面；把这段时间从电影时间轴中剔除，避免多个镜头同帧跳过。
+        startedAt += gap - intervalMs;
+      }
+    }
+    lastPumpAt = tickAt;
+    const elapsedSec = (elapsedMs + tickAt - startedAt) / 1000;
+    const index = DEMO_STEPS.findIndex((definition, candidate) => !fired.has(candidate) && definition.sec <= elapsedSec);
+    if (index >= 0) {
+      const definition = DEMO_STEPS[index];
+      fired.add(index);
+      onStep?.({
+        i: index + 1,
+        total,
+        cue: definition.cue,
+        title: definition.title,
+        note: definition.note,
+      });
+      actions[index]?.();
+    }
+    if (elapsedSec >= DEMO_DURATION_SEC && fired.size === total) complete();
+  };
+
+  const beginInterval = () => {
+    clearTimer();
+    timer = globalThis.setInterval(pump, intervalMs);
+  };
+
+  const restart = () => {
+    clearTimer();
+    elapsedMs = 0;
+    fired.clear();
+    // 电影时间轴独立于仿真时间；0.1× 保证 60 秒故事结束时仍保留有效路线。
+    setSpeed(0.1);
+    act.reset();
+    act.scenario('visionLoop');
+    ensureSimVision();
+    startedAt = now();
+    lastPumpAt = startedAt;
+    setTransport('running');
+    beginInterval();
+    pump();
+  };
+
+  const handle: AutoDemoHandle = {
+    pause() {
+      if (transport !== 'running') return;
+      elapsedMs = currentElapsedMs();
+      clearTimer();
+      lastPumpAt = null;
+      setTransport('paused');
+    },
+    resume() {
+      if (transport !== 'paused') return;
+      startedAt = now();
+      lastPumpAt = startedAt;
+      setTransport('running');
+      beginInterval();
+      pump();
+    },
+    restart,
     stop() {
-      stopped = true;
-      timers.forEach((t) => window.clearTimeout(t));
+      clearTimer();
       setSpeed(1);
+      setTransport('ready');
+    },
+    getState() {
+      return transport;
     },
   };
+
+  restart();
+  return handle;
 }

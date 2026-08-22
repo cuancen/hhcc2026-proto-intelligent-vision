@@ -1,5 +1,12 @@
 import { P } from './params';
-import type { AlertLevel, CockpitState, PendingChoice } from './types';
+import type {
+  AlertLevel,
+  CabinObjectId,
+  CabinObjectObservation,
+  CockpitState,
+  ContextStage,
+  PendingChoice,
+} from './types';
 import { complexityOf, fuseFatigue } from './sim';
 
 export interface EvaCtx {
@@ -8,12 +15,12 @@ export interface EvaCtx {
   cd: Record<string, number>;
   /** 场景脚本队列：[触发时刻, 回调] */
   q: [number, () => void][];
-  ids: { chat: number; alert: number };
+  ids: { chat: number; alert: number; context: number };
   flags: { complexActive: boolean; musicBeforeBlock: CockpitState['cabin']['music'] };
 }
 
 export function createCtx(s: CockpitState): EvaCtx {
-  return { s, cd: {}, q: [], ids: { chat: 1, alert: 1 }, flags: { complexActive: false, musicBeforeBlock: '轻音乐' } };
+  return { s, cd: {}, q: [], ids: { chat: 1, alert: 1, context: 1 }, flags: { complexActive: false, musicBeforeBlock: '轻音乐' } };
 }
 
 const round1 = (v: number) => Math.round(v * 10) / 10;
@@ -35,6 +42,11 @@ export function alert(ctx: EvaCtx, level: AlertLevel, text: string) {
   if (level === 'urgent') { ctx.s.stats.urgentAlerts++; ctx.s.stats.risk++; }
 }
 
+function contextEvent(ctx: EvaCtx, stage: ContextStage, text: string) {
+  ctx.s.context.events.push({ id: ctx.ids.context++, t: round1(ctx.s.t), stage, text });
+  if (ctx.s.context.events.length > 40) ctx.s.context.events.splice(0, ctx.s.context.events.length - 40);
+}
+
 export function adjust(ctx: EvaCtx, fn: () => void) {
   fn();
   ctx.s.stats.cabinAdj++;
@@ -50,6 +62,44 @@ function gate(ctx: EvaCtx, key: string, coolMin: number, fire: () => void) {
 
 export function pushPending(ctx: EvaCtx, pending: PendingChoice) {
   ctx.s.pending = pending;
+}
+
+/** 接收端侧视觉产生的结构化物品事件；比赛原型使用透明标注的模拟输入。 */
+export function observeCabinObject(ctx: EvaCtx, observation: CabinObjectObservation) {
+  const item = {
+    ...observation,
+    confidence: Math.min(1, Math.max(0, observation.confidence)),
+    source: 'simulated-event' as const,
+    lastSeenAt: round1(ctx.s.t),
+    present: true,
+  };
+  const idx = ctx.s.context.memory.findIndex((m) => m.id === observation.id);
+  if (idx >= 0) ctx.s.context.memory[idx] = item;
+  else ctx.s.context.memory.push(item);
+  if (['idle', 'verified', 'exit-reminded'].includes(ctx.s.context.phase)) ctx.s.context.phase = 'observed';
+  ctx.s.context.resolved = false;
+  contextEvent(
+    ctx,
+    '看见',
+    `模拟视觉事件：${item.label}位于${item.location}（置信度 ${Math.round(item.confidence * 100)}%）`,
+  );
+}
+
+export function beginObjectSearch(ctx: EvaCtx, id: CabinObjectId) {
+  ctx.s.context.phase = 'searching';
+  ctx.s.context.targetId = id;
+  ctx.s.context.cause = null;
+  ctx.s.context.assistance = null;
+  ctx.s.context.resolved = false;
+  ctx.s.cabin.readingLight = '关闭';
+}
+
+export function requestExitCheck(ctx: EvaCtx) {
+  ctx.s.context.phase = 'exit-check';
+  ctx.s.context.targetId = null;
+  ctx.s.context.cause = null;
+  ctx.s.context.assistance = null;
+  ctx.s.context.resolved = false;
 }
 
 /* ------------------------------------------------------------------ */
@@ -68,10 +118,21 @@ export function applyScenario(ctx: EvaCtx, id: CockpitState['scenario']) {
   s.drive.leadBrake = false;
   s.drive.l2Degraded = false;
   s.cabin.entertainmentBlocked = false;
+  s.cabin.readingLight = '关闭';
   ctx.flags.complexActive = false;
   ctx.q = [];
   // 脚本时刻基于当前 t 顺延，避免中途切换场景时多条播报挤在同一拍
   const at = (delay: number, fn: () => void) => ctx.q.push([s.t + delay, fn]);
+
+  if (id === 'visionLoop') {
+    s.drive.road = 'highway';
+    s.drive.auto = true;
+    s.drive.routeKm = 240;
+    s.driver.simFatigue = Math.min(s.driver.simFatigue, 18);
+    at(0.2, () => {
+      say(ctx, 'sys', 'EVA Vision Loop 已启动：驾驶员 DMS 可使用真实摄像头或模拟回退；物品位置明确采用模拟视觉事件，不保存原始画面。L2 辅助驾驶期间请保持监管并随时准备接管。');
+    });
+  }
 
   if (id === 'commute') {
     s.drive.road = 'city';
@@ -198,6 +259,8 @@ export function handleCommand(ctx: EvaCtx, raw: string): boolean {
 
 export function startRest(ctx: EvaCtx, msg: string) {
   const s = ctx.s;
+  // 直接通过指令进入休息（未走 pending 分支）时，清除可能滞留的紧急选择框
+  s.pending = null;
   s.driver.resting = true;
   s.stats.rest = 1;
   adjust(ctx, () => {
@@ -249,6 +312,8 @@ export function handleReply(ctx: EvaCtx, key: string) {
 
 function evaModeOf(s: CockpitState, complexActive: boolean): CockpitState['evaMode'] {
   if (s.drive.l2Degraded) return '干预中';
+  if (s.context.phase === 'assisting') return '干预中';
+  if (s.context.phase === 'searching') return '守护中';
   if (s.driver.resting || s.pending) return '休息引导中';
   if (complexActive) return '谨慎模式';
   if (s.driver.fatigue >= P.fatigueTh.care) return '守护中';
@@ -266,7 +331,58 @@ export function runRules(ctx: EvaCtx, dt: number) {
 
   const v = s.driver.vision;
 
-  // 2) 分神守护：视觉通道视线离开分级 → L2 降级
+  // 2) 情境闭环：将 DMS 分神信号与语义物品记忆关联，先解决原因，再确认恢复。
+  const target = s.context.targetId
+    ? s.context.memory.find((item) => item.id === s.context.targetId && item.present)
+    : undefined;
+  let contextOwnsLookAway = s.context.phase === 'assisting' && !!target;
+
+  if (v?.present && s.context.phase === 'searching' && target && v.lookAwaySec >= P.lookAwayTh.warnSec) {
+    contextOwnsLookAway = true;
+    s.context.phase = 'assisting';
+    s.context.cause = `驾驶员正在寻找${target.label}`;
+    s.context.assistance = `告知${target.location} · 打开主驾左侧阅读灯`;
+    adjust(ctx, () => { s.cabin.readingLight = '主驾左侧'; });
+    contextEvent(ctx, '理解', `视线向左下方偏离，与“寻找${target.label}”事件匹配`);
+    contextEvent(ctx, '行动', `播报${target.label}位置并打开主驾左侧阅读灯`);
+    alert(ctx, 'warn', `已识别分心原因：寻找${target.label}；正在提供位置协助。`);
+    say(
+      ctx,
+      'warn',
+      `我看到您正在寻找${target.label}。不用低头找，它最后出现在${target.location}。我已打开主驾左侧阅读灯，请继续监管道路并随时准备接管。`,
+    );
+    s.stats.contextAssist++;
+    s.stats.proact++;
+  }
+
+  if (v?.present && s.context.phase === 'assisting' && v.lookAwaySec < 0.5) {
+    s.context.phase = 'verified';
+    s.context.resolved = true;
+    s.context.assistance = '视线回正 · 风险解除';
+    adjust(ctx, () => { s.cabin.readingLight = '关闭'; });
+    contextEvent(ctx, '确认', 'DMS 确认视线已回到前方，本次分心闭环完成');
+    alert(ctx, 'info', '视觉确认：驾驶员视线已回正，本次分心风险解除。');
+    say(ctx, 'care', '视线已回正，我已确认本次风险解除并关闭阅读灯。L2 辅助驾驶期间仍请保持监管。');
+    s.stats.contextVerified++;
+  }
+
+  if (s.context.phase === 'exit-check') {
+    const important = s.context.memory.filter((item) => item.present && item.importance === 'important');
+    s.context.phase = 'exit-reminded';
+    if (important.length) {
+      const summary = important.map((item) => `${item.label}仍在${item.location}`).join('；');
+      s.context.assistance = `离车提醒 · ${important.length} 件重要物品`;
+      contextEvent(ctx, '提醒', `离车检查仅提醒重要物品：${summary}`);
+      say(ctx, 'warn', `准备离车：${summary}。普通物品保持静默，只提醒真正重要的东西。`);
+      s.stats.proact++;
+    } else {
+      s.context.assistance = '离车检查完成 · 无重要遗留物';
+      contextEvent(ctx, '确认', '离车检查完成，未发现重要遗留物');
+      say(ctx, 'care', '离车检查完成，没有发现需要提醒的重要物品。');
+    }
+  }
+
+  // 3) 分神守护：超过安全边界仍按 DMS 规则升级；未知原因使用通用提醒。
   if (v && v.present) {
     if (v.lookAwaySec >= P.lookAwayTh.escSec) {
       if (!s.drive.l2Degraded) {
@@ -278,7 +394,7 @@ export function runRules(ctx: EvaCtx, dt: number) {
       s.drive.l2Degraded = false;
       alert(ctx, 'info', '注意力恢复，L2 恢复常规策略。');
     }
-    if (v.lookAwaySec >= P.lookAwayTh.warnSec && v.lookAwaySec < P.lookAwayTh.escSec) {
+    if (!contextOwnsLookAway && v.lookAwaySec >= P.lookAwayTh.warnSec && v.lookAwaySec < P.lookAwayTh.escSec) {
       gate(ctx, 'look', P.cd.lookWarn, () => {
         alert(ctx, 'warn', '检测到视线离开前方，请注意路面。');
       });
@@ -291,7 +407,7 @@ export function runRules(ctx: EvaCtx, dt: number) {
     });
   }
 
-  // 3) 疲劳守护：双阈值（60 温柔关怀 / 85 紧急干预 + 用户选择分支）
+  // 4) 疲劳守护：双阈值（60 温柔关怀 / 85 紧急干预 + 用户选择分支）
   if (!s.driver.resting) {
     if (s.driver.fatigue >= P.fatigueTh.urgent && !s.pending) {
       gate(ctx, 'fat2', P.cd.urgent, () => {
@@ -305,7 +421,7 @@ export function runRules(ctx: EvaCtx, dt: number) {
           ],
         });
       });
-    } else if (s.driver.fatigue >= P.fatigueTh.care) {
+    } else if (s.driver.fatigue >= P.fatigueTh.care && !s.pending) {
       gate(ctx, 'fat1', P.cd.care, () => {
         const pc = v && v.present ? `（PERCLOS ${(v.perclos * 100).toFixed(0)}%）` : '';
         adjust(ctx, () => {
@@ -327,7 +443,7 @@ export function runRules(ctx: EvaCtx, dt: number) {
     say(ctx, 'care', '监测到您的状态已明显恢复，随时可以继续行程。');
   }
 
-  // 4) 复杂路况：因子 ≥2 屏蔽娱乐、谨慎模式；缓解后自动恢复
+  // 5) 复杂路况：因子 ≥2 屏蔽娱乐、谨慎模式；缓解后自动恢复
   const cx = complexityOf(s);
   if (cx >= P.complexityBlock && !ctx.flags.complexActive) {
     ctx.flags.complexActive = true;
@@ -343,7 +459,7 @@ export function runRules(ctx: EvaCtx, dt: number) {
     say(ctx, 'care', '路况已缓解，娱乐与常规座舱服务已恢复。');
   }
 
-  // 5) 情绪四联动
+  // 6) 情绪四联动
   if (s.driver.emotion <= P.emotionTh.low) {
     gate(ctx, 'emoLow', P.cd.emotion, () => {
       adjust(ctx, () => { s.cabin.ambient = '暖橙'; s.cabin.music = '轻音乐'; s.cabin.seatMassage = true; });
@@ -358,7 +474,7 @@ export function runRules(ctx: EvaCtx, dt: number) {
     });
   }
 
-  // 6) L2 监管提醒（L2 定位：责任始终在驾驶员）
+  // 7) L2 监管提醒（L2 定位：责任始终在驾驶员）
   if (s.drive.auto && (s.driver.fatigue >= 50 || (v?.present && v.perclos >= P.perclosTh.warn))) {
     gate(ctx, 'l2Remind', P.cd.l2Remind, () => {
       alert(ctx, 'info', 'L2 提醒：辅助驾驶期间请保持对路况的关注。');
