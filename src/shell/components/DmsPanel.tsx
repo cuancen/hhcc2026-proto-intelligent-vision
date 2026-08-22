@@ -1,6 +1,6 @@
 import type { RefObject } from 'react';
 import type { DmsStatus } from '../../vision/dms';
-import type { VisionSample } from '../../core';
+import type { EmotionId, VisionSample } from '../../core';
 import type { DmsMode } from '../hooks/useDms';
 
 interface DmsPanelProps {
@@ -15,9 +15,19 @@ interface DmsPanelProps {
 }
 
 const SOURCE_LABEL: Record<DmsMode, string> = {
-  off: '未启用',
-  model: '● 摄像头模型推理',
-  sim: '◆ 模拟信号（链路一致）',
+  off: 'Off',
+  model: '● Camera model inference',
+  sim: '◆ Simulated signal (same pipeline)',
+};
+
+/** 情绪展示：emoji + 英文标签（检测 6 态，与 Eva 主动关怀联动） */
+const EMO_UI: Record<EmotionId, { emoji: string; label: string }> = {
+  neutral: { emoji: '😐', label: 'Neutral' },
+  happy: { emoji: '😊', label: 'Happy' },
+  sad: { emoji: '😢', label: 'Sad' },
+  angry: { emoji: '😠', label: 'Angry' },
+  surprised: { emoji: '😮', label: 'Surprised' },
+  drowsy: { emoji: '😪', label: 'Drowsy' },
 };
 
 /** 机器视觉 · 驾驶员监测面板：摄像头画面 + 关键点叠加 + DMS 指标 */
@@ -30,7 +40,7 @@ export default function DmsPanel({
   return (
     <section className="panel" aria-labelledby="dms-title">
       <h2 className="panel-title" id="dms-title">
-        <span className="dot" aria-hidden="true" />机器视觉 · 驾驶员监测 DMS
+        <span className="dot" aria-hidden="true" />Machine Vision · Driver Monitoring
         <span
           className={`chip${mode === 'model' ? ' on' : mode === 'sim' ? ' warn' : ''}`}
           style={{ marginLeft: 'auto', textTransform: 'none' }}
@@ -41,7 +51,7 @@ export default function DmsPanel({
       </h2>
 
       <div className="dms-video">
-        <video ref={videoRef} playsInline muted style={{ display: mode === 'model' ? 'block' : 'none' }} aria-label="驾驶员摄像头画面" />
+        <video ref={videoRef} playsInline muted style={{ display: mode === 'model' ? 'block' : 'none' }} aria-label="Driver camera view" />
         <canvas ref={canvasRef} style={{ display: mode === 'model' ? 'block' : 'none' }} aria-hidden="true" />
 
         {mode !== 'model' && (
@@ -50,17 +60,17 @@ export default function DmsPanel({
               <>
                 <div>
                   <p style={{ margin: '0 0 4px', fontSize: '0.9rem', color: 'var(--text-soft)' }}>
-                    开启摄像头，用真实面部关键点模型驱动疲劳/分神监测
+                    Turn on the camera and drive fatigue/distraction monitoring with a real facial-landmark model
                   </p>
-                  <p style={{ margin: '0 0 12px' }}>眨眼 · PERCLOS · 头部姿态 —— 全部在浏览器本地推理，不上传任何画面</p>
+                  <p style={{ margin: '0 0 12px' }}>Blinks · PERCLOS · head pose — all inferred locally in your browser, nothing uploaded</p>
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-                  <button type="button" className="btn" onClick={onStartModel}>📷 开启摄像头监测</button>
-                  <button type="button" className="btn" onClick={onStartSim}>▶ 使用模拟信号</button>
+                  <button type="button" className="btn" onClick={onStartModel}>📷 Start camera monitoring</button>
+                  <button type="button" className="btn" onClick={onStartSim}>▶ Use simulated signal</button>
                 </div>
                 {status.kind === 'error' && (
                   <p role="alert" style={{ color: 'var(--danger)', fontSize: '0.8rem', maxWidth: 380 }}>
-                    摄像头/模型不可用：{status.detail}。可改用模拟信号，链路与真实模型完全一致。
+                    Camera/model unavailable: {status.detail}. You can switch to the simulated signal — the pipeline is identical to the real model.
                   </p>
                 )}
               </>
@@ -70,8 +80,8 @@ export default function DmsPanel({
             )}
             {mode === 'sim' && (
               <div>
-                <p style={{ margin: '0 0 12px' }}>模拟信号运行中：眨眼/PERCLOS/视线离开事件随工况合成，<br />经与真实模型相同的指标管线注入内核。</p>
-                <button type="button" className="btn" onClick={onStop}>■ 停止</button>
+                <p style={{ margin: '0 0 12px' }}>Simulated signal running: blinks / PERCLOS / look-away events synthesized from driving state,<br />injected into the kernel through the same metrics pipeline as the real model.</p>
+                <button type="button" className="btn" onClick={onStop}>■ Stop</button>
               </div>
             )}
           </div>
@@ -80,24 +90,34 @@ export default function DmsPanel({
 
       <div className="dms-metrics">
         <div className={metricCls(sample ? sample.ear < 0.15 : false, false)}>
-          <span>眼睛纵横比 EAR</span><b>{sample ? sample.ear.toFixed(2) : '—'}</b>
+          <span>Eye aspect ratio EAR</span><b>{sample ? sample.ear.toFixed(2) : '—'}</b>
         </div>
         <div className={metricCls(perclosPct >= 25, perclosPct >= 35)}>
-          <span>PERCLOS 闭眼占比</span><b>{sample ? `${perclosPct.toFixed(0)}%` : '—'}</b>
+          <span>PERCLOS closure</span><b>{sample ? `${perclosPct.toFixed(0)}%` : '—'}</b>
         </div>
         <div className="metric">
-          <span>眨眼频率</span><b>{sample ? `${sample.blinkPm.toFixed(0)} 次/分` : '—'}</b>
+          <span>Blink rate</span><b>{sample ? `${sample.blinkPm.toFixed(0)}/min` : '—'}</b>
         </div>
         <div className={metricCls(!!sample && sample.lookAwaySec >= 2, !!sample && sample.lookAwaySec >= 4)}>
-          <span>视线</span>
-          <b>{sample ? (sample.lookAwaySec < 0.3 ? '注视前方' : `离开 ${sample.lookAwaySec.toFixed(1)}s`) : '—'}</b>
+          <span>Gaze</span>
+          <b>{sample ? (sample.lookAwaySec < 0.3 ? 'On road' : `Away ${sample.lookAwaySec.toFixed(1)}s`) : '—'}</b>
         </div>
         <div className="metric">
-          <span>头部 偏航/俯仰</span>
+          <span>Head yaw/pitch</span>
           <b>{sample ? `${sample.yaw.toFixed(0)}° / ${sample.pitch.toFixed(0)}°` : '—'}</b>
         </div>
         <div className={metricCls(false, !!sample && !sample.present)}>
-          <span>驾驶员在位</span><b>{sample ? (sample.present ? '是' : '未检测到') : '—'}</b>
+          <span>Driver present</span><b>{sample ? (sample.present ? 'Yes' : 'Not detected') : '—'}</b>
+        </div>
+        <div
+          className={metricCls(
+            !!sample && (sample.emotion === 'sad' || sample.emotion === 'drowsy' || sample.emotion === 'surprised'),
+            !!sample && sample.emotion === 'angry',
+          )}
+          style={{ gridColumn: '1 / -1' }}
+        >
+          <span>Emotion (6-class)</span>
+          <b>{sample && sample.present ? `${EMO_UI[sample.emotion].emoji} ${EMO_UI[sample.emotion].label}` : '—'}</b>
         </div>
       </div>
     </section>

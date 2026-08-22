@@ -6,11 +6,11 @@ export type EvaMood = 'calm' | 'care' | 'warn' | 'urgent';
 const MOOD_RANK: Record<EvaMood, number> = { calm: 0, care: 1, warn: 2, urgent: 3 };
 
 const MODE_MOOD: Record<CockpitState['evaMode'], EvaMood> = {
-  观察中: 'calm',
-  守护中: 'care',
-  休息引导中: 'care',
-  谨慎模式: 'warn',
-  干预中: 'urgent',
+  Observing: 'calm',
+  Guarding: 'care',
+  Resting: 'care',
+  Cautious: 'warn',
+  Intervening: 'urgent',
 };
 
 const KIND_MOOD: Partial<Record<ChatMsg['kind'], EvaMood>> = {

@@ -7,25 +7,26 @@
 ```
 src/core/     内核：sim 仿真 / evaRules 规则引擎 / params 参数唯一出处（零 DOM）
 src/vision/   机器视觉：metrics 纯函数 / dms MediaPipe 引擎 / simVision 模拟回退
-src/shell/    UI：hooks（useCockpit/useDms/useUiPrefs）+ components
-tests/        vitest：core 21 项 + vision 9 项 + shell/交互 18 项（共 48 项）
-public/       自托管模型 models/face_landmarker.task；mediapipe-wasm/ 由 postinstall 生成（不入库）
+src/shell/    UI：电影控制、证据抽屉、可暂停时间轴；twin/ 为 Three.js 整车数字孪生与二维回退
+src/landing/  品牌首页：three.js 3D 车 Hero（CC-BY，署名见 AI_USAGE.md）+ Canvas 线框回退；独立于座舱业务
+tests/        vitest：core 25 项 + vision 13 项 + shell/交互 25 项（共 63 项）
+public/       自托管模型 models/face_landmarker.task + models/geely.glb（meshopt 压缩）；mediapipe-wasm/ 由 postinstall 生成（不入库）
 docs/PIPELINE.md  参数表/数据流/演示剧本（改参数必须同步）
 ```
 
 ## 验证流程（每次改动必做）
 
 ```bash
-npm test        # 48 项回归必须全绿
+npm test        # 63 项回归必须全绿
 npm run build   # tsc --noEmit + vite build
 ```
 
-改 `src/core/params.ts` 任何阈值：① 跑测试 ② 同步 `docs/PIPELINE.md` 参数表 ③ 手动过 EVA Vision Loop 主闭环与三个保留场景。
+改 `src/core/params.ts` 任何阈值：① 跑测试 ② 同步 `docs/PIPELINE.md` 参数表 ③ 手动过三场景（自动演示 60s）。
 
 ## 架构铁律
 
 1. **CORE 零 DOM**：`src/core/` 不 import DOM/React；UI 只经 `useCockpit()` 的快照与 `act.*` 与内核交互。
-2. **时间体系**：仿真 `setInterval(100ms)`，每拍 dt=0.2×速率仿真分钟（勿移回 rAF——后台标签页会冻结仿真）；Canvas 渲染走 rAF 直读 `liveState()`。
+2. **时间体系**：仿真 `setInterval(100ms)`，仅在 `running` 时推进；暂停/准备/完成必须冻结。三维渲染按剧情事件唤醒，勿改回永久 rAF。
 3. **视觉与内核解耦**：视觉模块只产出 `VisionSample` 写入 `act.setVision()`；模拟信号与真实模型共用 `metrics.ts` 同一套纯函数管线。
 4. **容灾优先**：新增外部资源必须"失败零影响"——模型自托管 + 多源回退 + 模拟信号兜底；摄像头拒绝自动降级不报错。
 5. **参数纪律**：阈值只加在 `params.ts`，不散落硬编码。
@@ -41,5 +42,6 @@ npm run build   # tsc --noEmit + vite build
 ## 话术规范
 
 - Eva 消息 kind：`care`（绿）/ `warn`（黄）/ `urg`（红）/ `sys`（蓝）；
-- L2 相关播报必须包含"监管/接管"责任表述；
-- 全部中文，面向"评委 + AI 协作者"双读者。
+- L2 相关播报必须包含"监管/接管"责任表述（英文文案对应 supervising / take over）；
+- All user-facing UI copy is English; command parsing remains English-first, and the English README/project guide stays current;
+- 代码注释、团队文档与协作沟通保持中文（工作语言）。

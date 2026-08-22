@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 const TTS_KINDS: Record<string, boolean> = { care: true, warn: true, urg: true };
 
 /**
- * Eva 语音输出：浏览器本地 speechSynthesis（zh-CN），零依赖、零上传。
+ * Eva 语音输出：浏览器本地 speechSynthesis（en-US），零依赖、零上传。
  * 防挂死设计（嵌入式/无头浏览器无语音服务时 speak 可能卡死渲染进程）：
  * - 无语音包（getVoices 为空）的环境直接跳过，绝不调用 speak
  * - 每次播报前 cancel：只读最新一条，不排队积压
@@ -37,10 +37,10 @@ export function useTts(enabled: boolean) {
       if (!readyRef.current || synth.getVoices().length === 0) return;
       synth.cancel();
       const u = new SpeechSynthesisUtterance(text);
-      u.lang = 'zh-CN';
+      u.lang = 'en-US';
       u.rate = 1.05;
-      const zh = synth.getVoices().find((v) => v.lang.toLowerCase().startsWith('zh'));
-      if (zh) u.voice = zh;
+      const english = synth.getVoices().find((v) => v.lang.toLowerCase().startsWith('en'));
+      if (english) u.voice = english;
       u.onstart = () => setSpeaking(true);
       u.onend = () => setSpeaking(false);
       u.onerror = () => setSpeaking(false);

@@ -20,7 +20,7 @@ describe('开机自检动画', () => {
     expect(BOOT_SEQUENCE.length).toBeGreaterThanOrEqual(4);
     expect(new Set(BOOT_SEQUENCE).size).toBe(BOOT_SEQUENCE.length);
     const all = BOOT_SEQUENCE.join('');
-    expect(all).toContain('视觉'); // 核心亮点必须在列
+    expect(all).toMatch(/视觉|Vision/); // 新旧启动层都必须覆盖视觉能力
     expect(all).toContain('L2');
   });
 
@@ -44,13 +44,13 @@ describe('自动演示剧本（路演讲解）', () => {
     }
   });
 
-  it('剧本覆盖看见、理解、行动、确认四阶段并透明标注模拟输入', () => {
+  it('covers See, Understand, Act, and Verify while disclosing simulated inputs', () => {
     const all = DEMO_STEPS.map((s) => `${s.title}\n${s.note}`).join('\n');
-    expect(all).toContain('看见');
-    expect(all).toContain('理解');
-    expect(all).toContain('行动');
-    expect(all).toContain('确认');
-    expect(all).toContain('模拟视觉事件');
+    expect(all).toContain('See');
+    expect(all).toContain('Understand');
+    expect(all).toContain('Act');
+    expect(all).toContain('Verify');
+    expect(all).toContain('simulated vision events');
   });
 
   it('十个镜头提示稳定、唯一，三维舞台不依赖步骤序号猜测', () => {
@@ -163,7 +163,7 @@ describe('数字孪生镜头派生', () => {
   it('原因、行动与确认阶段映射到不同镜头和语义颜色', () => {
     const state = createState('visionLoop');
     state.context.memory.push({
-      id: 'parking-card', label: '停车卡', location: '左侧车门储物格', owner: '驾驶员',
+      id: 'parking-card', label: 'Parking card', location: 'in the left door pocket', owner: 'Driver',
       importance: 'normal', confidence: 0.94, source: 'simulated-event', lastSeenAt: 1, present: true,
     });
 
@@ -173,13 +173,13 @@ describe('数字孪生镜头派生', () => {
     expect(cause.gaze).toBe('cause');
     expect(cause.accent).toBe('cause');
 
-    state.cabin.readingLight = '主驾左侧';
+    state.cabin.readingLight = 'Driver left';
     expect(deriveTwinFrame(state, 'cause-linked', 'warn').readingLight).toBe(false);
     const action = deriveTwinFrame(state, 'assistance', 'warn');
     expect(action.readingLight).toBe(true);
     expect(action.camera).toBe('assist');
 
-    state.cabin.readingLight = '关闭';
+    state.cabin.readingLight = 'Off';
     const verified = deriveTwinFrame(state, 'verified', 'care');
     expect(verified.camera).toBe('verify');
     expect(verified.accent).toBe('verify');
@@ -189,28 +189,28 @@ describe('数字孪生镜头派生', () => {
 
 describe('Eva 表情系统（情绪推导）', () => {
   it('五种模式基调映射四态情绪', () => {
-    expect(deriveMood('观察中', null, 0)).toBe('calm');
-    expect(deriveMood('守护中', null, 0)).toBe('care');
-    expect(deriveMood('休息引导中', null, 0)).toBe('care');
-    expect(deriveMood('谨慎模式', null, 0)).toBe('warn');
-    expect(deriveMood('干预中', null, 0)).toBe('urgent');
+    expect(deriveMood('Observing', null, 0)).toBe('calm');
+    expect(deriveMood('Guarding', null, 0)).toBe('care');
+    expect(deriveMood('Resting', null, 0)).toBe('care');
+    expect(deriveMood('Cautious', null, 0)).toBe('warn');
+    expect(deriveMood('Intervening', null, 0)).toBe('urgent');
   });
 
   it('新鲜消息语气可临时提升情绪，过期回落模式基调', () => {
-    expect(deriveMood('观察中', { kind: 'care', t: 10 }, 10.2)).toBe('care');
-    expect(deriveMood('观察中', { kind: 'care', t: 10 }, 10 + MOOD_FRESH_MIN + 0.01)).toBe('calm');
-    expect(deriveMood('观察中', { kind: 'sys', t: 10 }, 10.1)).toBe('calm');
+    expect(deriveMood('Observing', { kind: 'care', t: 10 }, 10.2)).toBe('care');
+    expect(deriveMood('Observing', { kind: 'care', t: 10 }, 10 + MOOD_FRESH_MIN + 0.01)).toBe('calm');
+    expect(deriveMood('Observing', { kind: 'sys', t: 10 }, 10.1)).toBe('calm');
   });
 
   it('紧急干预待选择（pending）期间锁定 urgent，表情不回落', () => {
-    expect(deriveMood('休息引导中', { kind: 'care', t: 10 }, 20, { pending: true })).toBe('urgent');
-    expect(deriveMood('观察中', null, 0, { pending: true })).toBe('urgent');
+    expect(deriveMood('Resting', { kind: 'care', t: 10 }, 20, { pending: true })).toBe('urgent');
+    expect(deriveMood('Observing', null, 0, { pending: true })).toBe('urgent');
   });
 
   it('情绪只升不降（安全优先：紧急语义不被温柔消息稀释）', () => {
-    expect(deriveMood('观察中', { kind: 'urg', t: 5 }, 5.1)).toBe('urgent');
-    expect(deriveMood('谨慎模式', { kind: 'care', t: 5 }, 5.1)).toBe('warn');
-    expect(deriveMood('守护中', { kind: 'warn', t: 5 }, 5.1)).toBe('warn');
+    expect(deriveMood('Observing', { kind: 'urg', t: 5 }, 5.1)).toBe('urgent');
+    expect(deriveMood('Cautious', { kind: 'care', t: 5 }, 5.1)).toBe('warn');
+    expect(deriveMood('Guarding', { kind: 'warn', t: 5 }, 5.1)).toBe('warn');
   });
 });
 

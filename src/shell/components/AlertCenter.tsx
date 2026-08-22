@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CockpitState } from '../../core';
 
-const LV_TEXT: Record<string, string> = { info: '提示', warn: '预警', urgent: '紧急' };
+const LV_TEXT: Record<string, string> = { info: 'Info', warn: 'Warn', urgent: 'Urgent' };
 
 /**
  * 分级告警中心。列表以 role=log 呈现；
@@ -23,9 +23,9 @@ export default function AlertCenter({ snap }: { snap: CockpitState }) {
 
   return (
     <section className="panel" aria-labelledby="alert-title">
-      <h2 className="panel-title" id="alert-title"><span className="dot" aria-hidden="true" />告警中心</h2>
+      <h2 className="panel-title" id="alert-title"><span className="dot" aria-hidden="true" />Alert Center</h2>
       <div className="visually-hidden" role="status" aria-live="assertive">{urgentText}</div>
-      <div className="alerts" role="log" aria-label="分级告警列表">
+      <div className="alerts" role="log" aria-label="Graded alert list">
         {items.map((a) => (
           <div key={a.id} className={`alert-item ${a.level}`}>
             <span className="lv">{LV_TEXT[a.level]}</span>
@@ -33,7 +33,7 @@ export default function AlertCenter({ snap }: { snap: CockpitState }) {
             <span className="at">{a.t.toFixed(1)}′</span>
           </div>
         ))}
-        {items.length === 0 && <div className="alert-item info"><span className="lv">提示</span><span>暂无告警，一路顺风。</span></div>}
+        {items.length === 0 && <div className="alert-item info"><span className="lv">Info</span><span>No alerts — have a smooth trip.</span></div>}
       </div>
     </section>
   );

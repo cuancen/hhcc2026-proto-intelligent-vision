@@ -56,7 +56,7 @@ const CAMERA_BY_CUE: Record<DemoCue, TwinCameraPreset> = {
 };
 
 const OPACITY_BY_CUE: Record<DemoCue, number> = {
-  boundary: 0.94,
+  boundary: 1,
   'observe-cabin': 0.3,
   'observe-phone': 0.28,
   'search-intent': 0.32,
@@ -65,7 +65,7 @@ const OPACITY_BY_CUE: Record<DemoCue, number> = {
   assistance: 0.18,
   verified: 0.36,
   'exit-filter': 0.26,
-  completed: 0.9,
+  completed: 1,
 };
 
 function poseOf(cue: DemoCue | null, mood: EvaMood): TwinEvaPose {
@@ -119,7 +119,7 @@ export function deriveTwinFrame(state: CockpitState, cue: DemoCue | null, mood: 
     bodyOpacity: OPACITY_BY_CUE[effectiveCue],
     accent,
     gaze,
-    readingLight: effectiveCue === 'assistance' || (cue === null && state.cabin.readingLight !== '关闭'),
+    readingLight: effectiveCue === 'assistance' || (cue === null && state.cabin.readingLight !== 'Off'),
     evaPose: poseOf(cue, mood),
     hotspots,
   };

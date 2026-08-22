@@ -36,8 +36,8 @@ export default function EntryTransition({ onDone }: { onDone: () => void }) {
   }, [complete, finish]);
 
   return (
-    <div className={`entry-transition${leaving ? ' leaving' : ''}`} role="status" aria-label="正在进入 EVA 数字孪生座舱">
-      <button type="button" className="entry-skip" onClick={() => finish(true)} aria-label="立即进入座舱">
+    <div className={`entry-transition${leaving ? ' leaving' : ''}`} role="status" aria-label="Entering the EVA digital twin cockpit">
+      <button type="button" className="entry-skip" onClick={() => finish(true)} aria-label="Enter the cockpit now">
         <span className="entry-mark" aria-hidden="true"><i /><i /></span>
         <span><b>EVA</b><small>VISION LOOP</small></span>
       </button>

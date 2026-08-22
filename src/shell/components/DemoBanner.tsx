@@ -17,7 +17,7 @@ export default function DemoBanner({ step, running, onStop }: DemoBannerProps) {
         <span>{step.note}</span>
       </div>
       <button type="button" className="btn small" onClick={onStop}>
-        ■ 停止
+        ■ Stop
       </button>
       <div className="demo-dots" aria-hidden="true">
         {Array.from({ length: step.total }, (_, k) => (

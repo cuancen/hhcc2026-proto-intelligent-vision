@@ -7,7 +7,7 @@
  *  - 任何失败都不抛出到 UI 层：以 status 事件上报，由上层决定是否切模拟信号
  */
 import type { FaceLandmarker } from '@mediapipe/tasks-vision';
-import { bothEar, createLookAwayTracker, createPerclosTracker, headPoseOf } from './metrics';
+import { bothEar, classifyEmotion, createEmotionSmoother, createLookAwayTracker, createPerclosTracker, headPoseOf } from './metrics';
 import type { VisionSample } from '../core';
 
 const MP_VERSION = '0.10.35';
@@ -53,7 +53,7 @@ async function firstOk<T>(sources: string[], open: (src: string) => Promise<T>, 
       lastErr = e;
     }
   }
-  throw new Error(`${label} 全部来源失败：${String(lastErr)}`);
+  throw new Error(`${label}: all sources failed — ${String(lastErr)}`);
 }
 
 export async function createDmsEngine(cb: DmsCallbacks): Promise<DmsEngine> {
@@ -75,7 +75,7 @@ export async function createDmsEngine(cb: DmsCallbacks): Promise<DmsEngine> {
     },
 
     async start(video: HTMLVideoElement) {
-      setStatus({ kind: 'loading', detail: '请求摄像头…' });
+      setStatus({ kind: 'loading', detail: 'Requesting camera…' });
       stream = await navigator.mediaDevices.getUserMedia({
         video: { width: 640, height: 480, facingMode: 'user' },
         audio: false,
@@ -84,12 +84,12 @@ export async function createDmsEngine(cb: DmsCallbacks): Promise<DmsEngine> {
       video.srcObject = stream;
       await video.play();
 
-      setStatus({ kind: 'loading', detail: '加载视觉模型（本地源优先）…' });
+      setStatus({ kind: 'loading', detail: 'Loading vision model (local source first)…' });
       const vision = await import('@mediapipe/tasks-vision');
       const fileset = await firstOk(
         WASM_SOURCES,
         (p) => vision.FilesetResolver.forVisionTasks(p),
-        'WASM 运行时',
+        'WASM runtime',
       );
 
       const tryCreate = (delegate: 'GPU' | 'CPU') =>
@@ -101,8 +101,9 @@ export async function createDmsEngine(cb: DmsCallbacks): Promise<DmsEngine> {
               runningMode: 'VIDEO',
               numFaces: 1,
               outputFacialTransformationMatrixes: true,
+              outputFaceBlendshapes: true, // 情绪分类复用同一模型，零额外开销
             }),
-          `模型(${delegate})`,
+          `model(${delegate})`,
         );
 
       try {
@@ -114,6 +115,7 @@ export async function createDmsEngine(cb: DmsCallbacks): Promise<DmsEngine> {
       // 指标追踪器（与模拟信号共用同一套纯函数管线）
       const perclos = createPerclosTracker(30);
       const lookAway = createLookAwayTracker();
+      const emotionSmooth = createEmotionSmoother(10);
       let lastEmit = 0;
       let lastVideoTs = -1;
       running = true;
@@ -144,6 +146,12 @@ export async function createDmsEngine(cb: DmsCallbacks): Promise<DmsEngine> {
         const p = perclos.feed(tSec, face ? ear : 0.3);
         const la = lookAway.feed(tSec, face ? yaw : 0, face ? pitch : 0);
 
+        // 情绪分类：blendshapes → 加权启发式 → 多数投票平滑
+        const bsCats = result.faceBlendshapes?.[0]?.categories;
+        const bs: Record<string, number> = {};
+        if (bsCats) for (const c of bsCats) bs[c.categoryName as string] = c.score;
+        const emotion = emotionSmooth.feed(face ? classifyEmotion(bs).id : 'neutral');
+
         // 采样节流：≥100ms 向内核发一次
         if (now - lastEmit >= 100) {
           lastEmit = now;
@@ -155,6 +163,7 @@ export async function createDmsEngine(cb: DmsCallbacks): Promise<DmsEngine> {
             yaw,
             pitch,
             ear,
+            emotion,
             source: 'model',
           });
         }

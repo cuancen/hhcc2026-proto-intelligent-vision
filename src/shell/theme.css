@@ -358,6 +358,137 @@ a:focus-visible {
 .twin-boundary span:last-child { padding-left: 26px; color: rgba(255, 122, 61, 0.72); }
 
 /* --------------------------------------------------------------------------
+   原项目能力的一体化仪表轨：不切视图，始终与数字孪生共享同一状态
+   -------------------------------------------------------------------------- */
+
+.systems-rail {
+  position: absolute;
+  z-index: 8;
+  top: 154px;
+  width: clamp(198px, 16vw, 242px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 11px 14px 13px;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  backdrop-filter: blur(7px);
+  box-shadow: none;
+}
+
+.systems-rail-left {
+  left: clamp(18px, 2.3vw, 36px);
+  border-left: 1px solid rgba(169, 178, 191, 0.24);
+  background: linear-gradient(90deg, rgba(9, 13, 19, 0.82), rgba(9, 13, 19, 0.38) 76%, transparent);
+}
+
+.systems-rail-right {
+  right: clamp(18px, 2.3vw, 36px);
+  border-right: 1px solid rgba(169, 178, 191, 0.24);
+  background: linear-gradient(270deg, rgba(9, 13, 19, 0.82), rgba(9, 13, 19, 0.38) 76%, transparent);
+}
+
+.rail-heading,
+.rail-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  font: 650 0.58rem/1.2 var(--numeric);
+  letter-spacing: 0.14em;
+}
+
+.rail-heading > i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.rail-heading > i[data-live="true"] { background: var(--verify); box-shadow: 0 0 10px rgba(94, 234, 212, 0.62); }
+
+.rail-agent {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.rail-agent > div { display: grid; gap: 4px; min-width: 0; }
+.rail-agent small { color: var(--muted); font: 600 0.55rem/1 var(--numeric); letter-spacing: 0.12em; }
+.rail-agent b { overflow: hidden; color: var(--text); font-size: 0.9rem; text-overflow: ellipsis; white-space: nowrap; }
+
+.rail-eyes {
+  width: 42px;
+  height: 34px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: 18px 18px 13px 13px;
+  background: #030509;
+}
+
+.rail-eyes i { width: 4px; height: 10px; border-radius: 4px; background: #fff; box-shadow: 0 0 7px rgba(255, 255, 255, 0.7); }
+
+.rail-grid { display: grid; gap: 7px; }
+.rail-grid.two { grid-template-columns: 1fr 1fr; }
+
+.rail-metric {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+  padding: 9px 10px;
+  border-left: 2px solid var(--line-strong);
+  background: rgba(169, 178, 191, 0.045);
+}
+
+.rail-metric span { color: var(--muted); font: 600 0.53rem/1 var(--numeric); letter-spacing: 0.1em; }
+.rail-metric b { overflow: hidden; color: var(--text-soft); font: 600 0.79rem/1.2 var(--numeric); text-overflow: ellipsis; white-space: nowrap; }
+.rail-metric[data-tone="warn"] { border-left-color: var(--cause); }
+.rail-metric[data-tone="warn"] b { color: #ffac78; }
+.rail-metric[data-tone="danger"] { border-left-color: var(--danger); }
+.rail-metric[data-tone="danger"] b { color: var(--danger); }
+
+.rail-footnote,
+.rail-error { margin: 2px 0 0; color: rgba(169, 178, 191, 0.62); font-size: 0.64rem; line-height: 1.5; }
+.rail-error { margin-top: 7px; color: var(--danger); }
+
+.rail-section { display: grid; gap: 9px; padding-top: 12px; border-top: 1px solid var(--line); }
+.rail-section:first-of-type { padding-top: 0; border-top: 0; }
+.rail-section-title b { color: var(--text-soft); font-size: 0.55rem; letter-spacing: 0.07em; }
+.rail-section-title b[data-tone="verify"] { color: var(--verify); }
+.rail-section-title b[data-tone="danger"] { color: var(--danger); }
+
+.rail-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+.rail-actions button,
+.rail-l2 {
+  min-height: 31px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  color: var(--muted);
+  background: rgba(16, 21, 29, 0.88);
+  font: 650 0.58rem/1 var(--numeric);
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.rail-actions button[aria-pressed="true"],
+.rail-l2[aria-pressed="true"] { color: var(--verify); border-color: rgba(94, 234, 212, 0.5); background: rgba(94, 234, 212, 0.07); }
+.rail-l2 { width: 100%; color: var(--text-soft); }
+
+.rail-cabin dl { display: grid; gap: 7px; margin: 0; }
+.rail-cabin dl > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.rail-cabin dt { color: var(--muted); font-size: 0.65rem; }
+.rail-cabin dd { margin: 0; color: var(--text-soft); font: 600 0.68rem/1 var(--numeric); }
+
+/* --------------------------------------------------------------------------
    单句叙事、闭环进度、电影控制
    -------------------------------------------------------------------------- */
 
@@ -863,7 +994,7 @@ a:focus-visible {
   font: normal 650 0.64rem/1.45 var(--numeric);
 }
 
-.event-trace [data-stage="确认"] i { color: var(--verify); }
+.event-trace [data-stage="Verify"] i { color: var(--verify); }
 .event-trace p,
 .alert-trace p { margin: 0; color: var(--text-soft); font-size: 0.72rem; line-height: 1.5; }
 .event-trace small,
@@ -937,6 +1068,8 @@ body.high-contrast {
 }
 
 @media (max-width: 980px) {
+  .systems-rail { display: none; }
+
   .cinema-header {
     grid-template-columns: 1fr minmax(160px, 1fr) auto auto;
     gap: 12px;
@@ -1040,6 +1173,9 @@ body.high-contrast {
 @media (max-height: 720px) and (min-width: 681px) {
   .cinema-header { height: 64px; }
   .twin-boundary { top: 78px; }
+  .systems-rail { top: 112px; gap: 8px; padding: 9px 11px 10px; }
+  .rail-agent { padding: 9px 0; }
+  .rail-footnote, .rail-cabin { display: none; }
   .cinema-story-layer { bottom: 14px; gap: 9px 24px; }
   .eva-narration { min-height: 62px; }
   .eva-narration p { font-size: 0.82rem; }

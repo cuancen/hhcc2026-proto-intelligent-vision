@@ -392,6 +392,10 @@ export async function mountTwinScene(
     desiredPosition.set(...pose.position);
     desiredTarget.set(...pose.target);
     targetOpacity = next.bodyOpacity;
+    // Keep the procedural cabin out of the exterior hero shots. It is revealed only
+    // when the body becomes translucent, avoiding transparent-sort bleed that makes
+    // seats and EVA appear to sit outside an otherwise opaque vehicle.
+    cabin.visible = next.camera !== 'hero' || next.bodyOpacity < 0.8;
     updateGaze(next);
     readingCone.visible = next.readingLight;
     readingSpot.intensity = next.readingLight ? 16 : 0;

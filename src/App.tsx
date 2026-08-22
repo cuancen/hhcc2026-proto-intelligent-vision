@@ -10,6 +10,7 @@ import EntryTransition from './shell/components/EntryTransition';
 import EvaNarration from './shell/components/EvaNarration';
 import EvidenceDrawer from './shell/components/EvidenceDrawer';
 import StoryRail from './shell/components/StoryRail';
+import SystemsRail from './shell/components/SystemsRail';
 import { deriveMood } from './shell/evaFace';
 import { useCockpit } from './shell/hooks/useCockpit';
 import { useDms } from './shell/hooks/useDms';
@@ -72,7 +73,7 @@ export default function App() {
   useEffect(() => {
     if (route !== 'cockpit') return;
     document.body.classList.add('cockpit-body');
-    document.title = 'EVA Digital Twin — 视觉情境闭环';
+    document.title = 'EVA Digital Twin — Vision Context Loop';
     return () => {
       document.body.classList.remove('cockpit-body');
       demoRef.current?.stop();
@@ -187,17 +188,19 @@ export default function App() {
       data-route-km={snap.drive.routeKm.toFixed(3)}
       data-sim-time={snap.t.toFixed(3)}
     >
-      <a className="skip-link" href="#main">跳到数字孪生主舞台</a>
+      <a className="skip-link" href="#main">Skip to the digital twin stage</a>
       <main className="cinema-main" id="main">
         <TwinStage liveState={liveState} frame={twinFrame} running={running} onReady={() => setTwinReady(true)} />
         <div className="cinema-vignette" aria-hidden="true" />
 
         <CockpitHeader snap={snap} step={demoStep} transport={transport} onOpenEvidence={() => setEvidenceOpen(true)} />
 
-        <div className="twin-boundary" aria-label="数据来源边界">
-          <span><i aria-hidden="true" />DMS {dms.mode === 'model' ? '真实 · 本地' : dms.mode === 'sim' ? '模拟信号' : '可接入真实摄像头'}</span>
-          <span>物品事件 · 模拟</span>
+        <div className="twin-boundary" aria-label="Data source boundaries">
+          <span><i aria-hidden="true" />DMS {dms.mode === 'model' ? 'CAMERA · LOCAL' : dms.mode === 'sim' ? 'SIMULATED SIGNAL' : 'CAMERA READY'}</span>
+          <span>OBJECT EVENTS · SIMULATED</span>
         </div>
+
+        <SystemsRail snap={snap} act={act} refresh={refresh} dms={dms} />
 
         <div className="cinema-story-layer">
           <EvaNarration message={latestEva} step={demoStep} transport={transport} mood={mood} voiceOn={prefs.voice} />

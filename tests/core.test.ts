@@ -10,6 +10,7 @@ const idleVision = (over: Partial<VisionSample> = {}): VisionSample => ({
   yaw: 0,
   pitch: 0,
   ear: 0.32,
+  emotion: 'neutral',
   source: 'model',
   ...over,
 });
@@ -52,7 +53,7 @@ describe('疲劳守护：双阈值 + 用户选择分支', () => {
     const adj0 = api.state.stats.cabinAdj;
     api.actions.setSimFatigue(62);
     api.step(0.2);
-    expect(api.state.chat.some((c) => c.text.includes('通风'))).toBe(true);
+    expect(api.state.chat.some((c) => c.text.includes('ventilation'))).toBe(true);
     expect(api.state.stats.cabinAdj).toBeGreaterThan(adj0);
     const chats = api.state.chat.length;
     run(api, 2); // 冷却 8 分钟内
@@ -71,12 +72,12 @@ describe('疲劳守护：双阈值 + 用户选择分支', () => {
     api.actions.reply('rest');
     expect(api.state.driver.resting).toBe(true);
     expect(api.state.stats.rest).toBe(1);
-    expect(api.state.cabin.music).toBe('关闭');
+    expect(api.state.cabin.music).toBe('Off');
 
     run(api, 35); // restDecay 2.6/min，88 → <15 约 28 分钟后自动退出，随后恢复行驶缓慢回升
     expect(api.state.driver.simFatigue).toBeLessThan(20);
     expect(api.state.driver.resting).toBe(false); // 自动退出休息
-    expect(api.state.chat.some((c) => c.text.includes('状态已明显恢复'))).toBe(true);
+    expect(api.state.chat.some((c) => c.text.includes('recovered'))).toBe(true);
   });
 
   it('拒绝休息后 reEscalateAfter 分钟再次升级', () => {
@@ -113,18 +114,18 @@ describe('机器视觉通道（DMS 融合）', () => {
     run(api, 2);
     api.actions.setVision(idleVision({ lookAwaySec: 2.4 }));
     api.step(0.2);
-    expect(api.state.alerts.some((a) => a.text.includes('视线离开'))).toBe(true);
+    expect(api.state.alerts.some((a) => a.text.includes('watch the road'))).toBe(true);
     expect(api.state.drive.l2Degraded).toBe(false);
 
     api.actions.setVision(idleVision({ lookAwaySec: 4.6 }));
     api.step(0.2);
     expect(api.state.drive.l2Degraded).toBe(true);
-    expect(api.state.evaMode).toBe('干预中');
+    expect(api.state.evaMode).toBe('Intervening');
 
     api.actions.setVision(idleVision({ lookAwaySec: 0.2 }));
     api.step(0.2);
     expect(api.state.drive.l2Degraded).toBe(false);
-    expect(api.state.alerts.some((a) => a.text.includes('注意力恢复'))).toBe(true);
+    expect(api.state.alerts.some((a) => a.text.includes('Attention recovered'))).toBe(true);
   });
 
   it('驾驶员不在位预警', () => {
@@ -132,7 +133,7 @@ describe('机器视觉通道（DMS 融合）', () => {
     run(api, 1);
     api.actions.setVision(idleVision({ present: false }));
     api.step(0.2);
-    expect(api.state.alerts.some((a) => a.text.includes('未检测到驾驶员'))).toBe(true);
+    expect(api.state.alerts.some((a) => a.text.includes('No driver detected'))).toBe(true);
   });
 });
 
@@ -141,9 +142,9 @@ describe('EVA Vision Loop：情境记忆与闭环确认', () => {
     const api = createCockpit();
     api.actions.observeCabinObject({
       id: 'parking-card',
-      label: '停车卡',
-      location: '左侧车门储物格',
-      owner: '驾驶员',
+      label: 'Parking card',
+      location: 'in the left door pocket',
+      owner: 'Driver',
       importance: 'important',
       confidence: 0.94,
     });
@@ -151,10 +152,10 @@ describe('EVA Vision Loop：情境记忆与闭环确认', () => {
     expect(api.state.context.memory).toHaveLength(1);
     expect(api.state.context.memory[0]).toMatchObject({
       id: 'parking-card',
-      location: '左侧车门储物格',
+      location: 'in the left door pocket',
       source: 'simulated-event',
     });
-    expect(api.state.context.events.at(-1)?.stage).toBe('看见');
+    expect(api.state.context.events.at(-1)?.stage).toBe('See');
     expect(JSON.stringify(api.state.context)).not.toContain('frame');
     expect(JSON.stringify(api.state.context)).not.toContain('video');
   });
@@ -164,9 +165,9 @@ describe('EVA Vision Loop：情境记忆与闭环确认', () => {
     api.actions.scenario('fatigue');
     api.actions.observeCabinObject({
       id: 'parking-card',
-      label: '停车卡',
-      location: '左侧车门储物格',
-      owner: '驾驶员',
+      label: 'Parking card',
+      location: 'in the left door pocket',
+      owner: 'Driver',
       importance: 'important',
       confidence: 0.94,
     });
@@ -175,21 +176,21 @@ describe('EVA Vision Loop：情境记忆与闭环确认', () => {
     api.step(0.2);
 
     expect(api.state.context.phase).toBe('assisting');
-    expect(api.state.context.cause).toContain('停车卡');
-    expect(api.state.cabin.readingLight).toBe('主驾左侧');
-    expect(api.state.chat.some((c) => c.text.includes('停车卡') && c.text.includes('左侧车门储物格'))).toBe(true);
-    expect(api.state.alerts.some((a) => a.text === '检测到视线离开前方，请注意路面。')).toBe(false);
-    expect(api.state.context.events.some((e) => e.stage === '理解')).toBe(true);
-    expect(api.state.context.events.some((e) => e.stage === '行动')).toBe(true);
+    expect(api.state.context.cause).toContain('parking card');
+    expect(api.state.cabin.readingLight).toBe('Driver left');
+    expect(api.state.chat.some((c) => c.text.includes('parking card') && c.text.includes('left door pocket'))).toBe(true);
+    expect(api.state.alerts.some((a) => a.text === 'Eyes leaving the road ahead — please watch the road.')).toBe(false);
+    expect(api.state.context.events.some((e) => e.stage === 'Understand')).toBe(true);
+    expect(api.state.context.events.some((e) => e.stage === 'Act')).toBe(true);
   });
 
   it('驾驶员回正后视觉确认风险解除并关闭阅读灯', () => {
     const api = createCockpit();
     api.actions.observeCabinObject({
       id: 'parking-card',
-      label: '停车卡',
-      location: '左侧车门储物格',
-      owner: '驾驶员',
+      label: 'Parking card',
+      location: 'in the left door pocket',
+      owner: 'Driver',
       importance: 'important',
       confidence: 0.94,
     });
@@ -201,25 +202,25 @@ describe('EVA Vision Loop：情境记忆与闭环确认', () => {
 
     expect(api.state.context.phase).toBe('verified');
     expect(api.state.context.resolved).toBe(true);
-    expect(api.state.cabin.readingLight).toBe('关闭');
-    expect(api.state.context.events.at(-1)?.stage).toBe('确认');
+    expect(api.state.cabin.readingLight).toBe('Off');
+    expect(api.state.context.events.at(-1)?.stage).toBe('Verify');
     expect(api.state.stats.contextVerified).toBe(1);
   });
 
   it('离车检查只提醒重要物品，普通水杯保持沉默', () => {
     const api = createCockpit();
     api.actions.observeCabinObject({
-      id: 'laptop-bag', label: '电脑包', location: '右后座', owner: '驾驶员', importance: 'important', confidence: 0.91,
+      id: 'laptop-bag', label: 'Laptop bag', location: 'on the right rear seat', owner: 'Driver', importance: 'important', confidence: 0.91,
     });
     api.actions.observeCabinObject({
-      id: 'water-bottle', label: '水杯', location: '杯架', owner: '驾驶员', importance: 'normal', confidence: 0.98,
+      id: 'water-bottle', label: 'Water bottle', location: 'in the cup holder', owner: 'Driver', importance: 'normal', confidence: 0.98,
     });
     api.actions.requestExitCheck();
     api.step(0.2);
 
     const latest = api.state.chat.at(-1)?.text ?? '';
-    expect(latest).toContain('电脑包');
-    expect(latest).not.toContain('水杯');
+    expect(latest).toContain('Laptop bag');
+    expect(latest).not.toContain('Water bottle');
     expect(api.state.context.phase).toBe('exit-reminded');
   });
 });
@@ -230,58 +231,58 @@ describe('复杂路况舱驾协同', () => {
     api.actions.scenario('complex');
     run(api, 2.6); // 雨(0.3) + 拥堵(1.2) → 1.2 起因子=2
     expect(api.state.cabin.entertainmentBlocked).toBe(true);
-    expect(api.state.evaMode).toBe('谨慎模式');
+    expect(api.state.evaMode).toBe('Cautious');
 
     api.actions.setRain(false);
     api.actions.setNight(false);
     api.state.drive.road = 'highway'; // 测试直接改路况且规则仅读状态
     api.step(0.2);
     expect(api.state.cabin.entertainmentBlocked).toBe(false);
-    expect(api.state.chat.some((c) => c.text.includes('路况已缓解'))).toBe(true);
+    expect(api.state.chat.some((c) => c.text.includes('eased'))).toBe(true);
   });
 });
 
 describe('指令解析与 L2 定位', () => {
-  it('“我有点困”触发疲劳关怀链路', () => {
+  it('“I am sleepy” triggers the fatigue-care chain', () => {
     const api = createCockpit();
     run(api, 1);
-    expect(api.actions.command('我有点困')).toBe(true);
+    expect(api.actions.command('I am a bit sleepy')).toBe(true);
     expect(api.state.stats.cmd).toBe(1);
     expect(api.state.driver.simFatigue).toBeGreaterThanOrEqual(63);
-    expect(api.state.chat.some((c) => c.text.includes('提神'))).toBe(true);
+    expect(api.state.chat.some((c) => c.text.includes('fresh'))).toBe(true);
   });
 
   it('温度/音乐/按摩/导航指令', () => {
     const api = createCockpit();
     run(api, 1);
     const t0 = api.state.cabin.temp;
-    api.actions.command('有点热');
+    api.actions.command('a bit hot');
     expect(api.state.cabin.temp).toBeLessThan(t0);
-    api.actions.command('来点音乐');
-    expect(['轻音乐', '动感', '新闻']).toContain(api.state.cabin.music);
-    api.actions.command('导航还有多久');
-    expect(api.state.chat.at(-1)!.text).toContain('分钟');
+    api.actions.command('play some music');
+    expect(['Soft', 'Upbeat', 'News']).toContain(api.state.cabin.music);
+    api.actions.command('How much longer is the route?');
+    expect(api.state.chat.at(-1)!.text).toContain('minutes');
   });
 
   it('未匹配指令给出能力边界说明', () => {
     const api = createCockpit();
     run(api, 1);
-    expect(api.actions.command('给我讲个笑话')).toBe(false);
-    expect(api.state.chat.at(-1)!.text).toContain('学习');
+    expect(api.actions.command('tell me a joke')).toBe(false);
+    expect(api.state.chat.at(-1)!.text).toContain('learning');
   });
 
   it('L2 开启话术明确驾驶员监管责任，疲劳时附加警示', () => {
     const api = createCockpit();
     run(api, 1);
     api.actions.setAuto(true);
-    expect(api.state.chat.some((c) => c.text.includes('监管'))).toBe(true);
+    expect(api.state.chat.some((c) => c.text.includes('supervising'))).toBe(true);
 
     const api2 = createCockpit();
     api2.actions.scenario('fatigue');
     run(api2, 1);
     api2.actions.setSimFatigue(65);
     api2.actions.setAuto(true);
-    expect(api2.state.chat.some((c) => c.text.includes('疲劳') && c.kind === 'warn')).toBe(true);
+    expect(api2.state.chat.some((c) => c.text.includes('fatigue') && c.kind === 'warn')).toBe(true);
   });
 });
 
@@ -293,7 +294,7 @@ describe('日常通勤主动服务', () => {
     expect(api.state.chat.length).toBeGreaterThanOrEqual(3);
     expect(api.state.cabin.temp).toBe(22.5);
     expect(api.state.stats.proact).toBeGreaterThanOrEqual(2);
-    expect(api.state.chat.some((c) => c.text.includes('预计'))).toBe(true);
+    expect(api.state.chat.some((c) => c.text.includes('minutes to arrive'))).toBe(true);
   });
 });
 
@@ -327,5 +328,51 @@ describe('快照隔离与复位', () => {
     expect(api.state.t).toBe(0);
     expect(api.state.drive.rain).toBe(false);
     expect(api.state.chat.length).toBe(0);
+  });
+});
+
+describe('视觉情绪主动关怀', () => {
+  it('检测到 sad 稳定 → 开导 + 暖氛围灯/轻音乐联动', () => {
+    const api = createCockpit();
+    api.actions.scenario('commute');
+    run(api, 2);
+    api.actions.setVision(idleVision({ emotion: 'sad' }));
+    run(api, 1); // > stableMin 0.3 仿真分钟
+    expect(api.state.chat.some((c) => c.text.includes('down'))).toBe(true);
+    expect(api.state.cabin.ambient).toBe('Warm Amber');
+    expect(api.state.cabin.music).toBe('Soft');
+  });
+
+  it('拥堵 + angry → 安抚建议（深呼吸/L2 跟车/舒缓音乐）', () => {
+    const api = createCockpit();
+    api.actions.scenario('complex');
+    run(api, 2.6); // 雨(0.3)+拥堵(1.2) 起，路况复杂
+    api.actions.setVision(idleVision({ emotion: 'angry' }));
+    run(api, 1);
+    expect(api.state.chat.some((c) => c.text.includes('breath') || c.text.includes('tension'))).toBe(true);
+  });
+
+  it('happy → 主动询问好事；同一情绪不重复唠叨，切换情绪可再触发', () => {
+    const api = createCockpit();
+    run(api, 1);
+    api.actions.setVision(idleVision({ emotion: 'happy' }));
+    run(api, 1);
+    expect(api.state.chat.some((c) => c.text.includes('good mood'))).toBe(true);
+    const chats = api.state.chat.length;
+    run(api, 2); // 同情绪持续：chatted 标记拦截
+    expect(api.state.chat.length).toBe(chats);
+    api.actions.setVision(idleVision({ emotion: 'sad' }));
+    run(api, 1); // 换情绪：新话题允许
+    expect(api.state.chat.some((c) => c.text.includes('down'))).toBe(true);
+  });
+
+  it('情绪未达稳定时长不触发（防瞬时抖动）', () => {
+    const api = createCockpit();
+    run(api, 1);
+    api.actions.setVision(idleVision({ emotion: 'surprised' }));
+    api.step(0.1); // < stableMin
+    expect(api.state.chat.every((c) => !c.text.includes('alright?'))).toBe(true);
+    run(api, 1);
+    expect(api.state.chat.some((c) => c.text.includes('alright?'))).toBe(true);
   });
 });

@@ -4,7 +4,7 @@ import { deriveMood } from '../evaFace';
 import { useTts } from '../hooks/useTts';
 import EvaFace from './EvaFace';
 
-const QUICK_REPLIES = ['我有点困', '来点音乐', '有点热', '导航还有多久'];
+const QUICK_REPLIES = ["I'm sleepy", 'Play some music', "It's hot", 'How much further?'];
 
 /** 打字机速率：每 24ms 露出 2 个字符，与中文语速相当 */
 const TYPE_INTERVAL_MS = 24;
@@ -123,7 +123,7 @@ export default function EvaAgent({ snap, act, voiceOn }: {
 
   return (
     <section className="panel" aria-labelledby="eva-title">
-      <h2 className="panel-title" id="eva-title"><span className="dot" aria-hidden="true" />Eva 智能体</h2>
+      <h2 className="panel-title" id="eva-title"><span className="dot" aria-hidden="true" />Eva Agent</h2>
 
       <div className="eva-head">
         <div className={`eva-face ${mood}`} aria-hidden="true">
@@ -132,22 +132,22 @@ export default function EvaAgent({ snap, act, voiceOn }: {
         <div className="eva-meta">
           <div className="eva-mode" aria-live="polite">{snap.evaMode}</div>
           <div className="eva-sub">
-            主动服务 {snap.stats.proact} 次 · 指令 {snap.stats.cmd} 条
+            {snap.stats.proact} proactive · {snap.stats.cmd} commands
           </div>
         </div>
       </div>
 
-      <div className="chat" ref={listRef} role="log" aria-label="Eva 对话流" aria-live="polite">
+      <div className="chat" ref={listRef} role="log" aria-label="Eva conversation" aria-live="polite">
         {snap.chat.map((m) => m.role === 'eva' ? (
           <EvaBubble key={m.id} msg={m} animate={m.id === typingId} onTypingEnd={() => handleTypingEnd(m.id)} />
         ) : (
           <div key={m.id} className="msg driver">
-            <div className="who">我 · {m.t.toFixed(1)}′</div>
+            <div className="who">Me · {m.t.toFixed(1)}′</div>
             {m.text}
           </div>
         ))}
         {snap.chat.length === 0 && (
-          <div className="msg eva sys">您好，我是 Eva。切换下方场景即可开始体验。</div>
+          <div className="msg eva sys">Hi, I'm Eva. Switch scenes below to start exploring.</div>
         )}
       </div>
 
@@ -164,7 +164,7 @@ export default function EvaAgent({ snap, act, voiceOn }: {
         </div>
       )}
 
-      <div className="quick" aria-label="快捷指令">
+      <div className="quick" aria-label="Quick commands">
         {QUICK_REPLIES.map((q) => (
           <button key={q} type="button" className="btn small" onClick={() => send(q)}>{q}</button>
         ))}
@@ -174,15 +174,15 @@ export default function EvaAgent({ snap, act, voiceOn }: {
         className="cmd-row"
         onSubmit={(e) => { e.preventDefault(); send(input); }}
       >
-        <label htmlFor="eva-cmd" className="visually-hidden">对 Eva 说</label>
+        <label htmlFor="eva-cmd" className="visually-hidden">Talk to Eva</label>
         <input
           id="eva-cmd"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="对 Eva 说：困了 / 冷 / 关音乐 / 按摩…"
+          placeholder="Tell Eva: sleepy / cold / music off / massage…"
           autoComplete="off"
         />
-        <button type="submit" className="btn">发送</button>
+        <button type="submit" className="btn">Send</button>
       </form>
     </section>
   );

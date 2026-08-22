@@ -32,7 +32,7 @@ export default function CarModel() {
         })
         .catch((err: unknown) => {
           // 加载/渲染失败：线框回退常驻，零影响；留一条控制台线索便于排查
-          console.warn('[CarModel] 3D 车模型加载失败，已回退 Canvas 线框：', err);
+          console.warn('[CarModel] 3D vehicle unavailable; using the Canvas fallback:', err);
         });
     };
 
@@ -58,7 +58,7 @@ export default function CarModel() {
           ref={canvasRef}
           className="car-canvas"
           role="img"
-          aria-label="EVA 演示车：三维修转的白色整车模型，带柔和阴影与品牌橙轮廓光"
+          aria-label="EVA concept vehicle: a rotating 3D car with soft grounding and an orange rim light"
         />
       </div>
       {wireOn && <CabinModel />}

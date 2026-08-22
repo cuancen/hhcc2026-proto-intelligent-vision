@@ -134,7 +134,7 @@ export default function CabinModel() {
       ref={canvasRef}
       className="cabin-model"
       role="img"
-      aria-label="EVA 座舱线框示意：三维修转的座舱轮廓，舱内驾驶员头部带有视觉检测框与摄像头视线"
+      aria-label="EVA cockpit wireframe: a rotating vehicle outline with a driver detection box and camera sight line"
     />
   );
 }

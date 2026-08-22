@@ -35,6 +35,9 @@ export const P = {
   /** 情绪阈值（0-100，50 平静） */
   emotionTh: { low: 32, high: 68 } as const,
 
+  /** 视觉情绪稳定判定与同一情绪话题冷却，避免瞬时误判和重复打扰。 */
+  visionEmotion: { stableMin: 0.3, chatCd: 5 } as const,
+
   /** 各规则冷却（仿真分钟） */
   cd: { care: 8, urgent: 15, emotion: 10, lookWarn: 1.5, complex: 6, l2Remind: 5 } as const,
 
@@ -43,10 +46,10 @@ export const P = {
 } as const;
 
 export const SCENARIOS = {
-  visionLoop: { label: '情境闭环', desc: '模拟物品事件 + 真实 DMS → 理解原因、行动并确认' },
-  commute: { label: '日常通勤', desc: '上车问候 · 身份识别 · 习惯路线 · 专属座舱氛围' },
-  fatigue: { label: '疲劳守护', desc: '视觉 PERCLOS + 仿真疲劳双通道 → 分级干预' },
-  complex: { label: '复杂路况', desc: '雨夜 + 拥堵 + 弯道 → 舱驾协同谨慎模式' },
+  visionLoop: { label: 'Vision Context Loop', desc: 'Simulated object events + live DMS → understand, act and verify' },
+  commute: { label: 'Daily Commute', desc: 'Boarding greeting · identity · usual route · personalized cabin' },
+  fatigue: { label: 'Fatigue Guard', desc: 'Vision PERCLOS + simulated workload fatigue → graded intervention' },
+  complex: { label: 'Complex Roads', desc: 'Rainy night + congestion + curves → coordinated cautious mode' },
 } as const;
 
 export type ScenarioId = keyof typeof SCENARIOS;

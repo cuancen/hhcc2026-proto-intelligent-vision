@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 
 /** 开机自检清单：展示顺序即点亮顺序 */
 export const BOOT_SEQUENCE: readonly string[] = [
-  '座舱仿真内核',
-  'Eva 规则引擎',
-  'L2 辅助策略链路',
-  'MediaPipe 视觉模型 · 本地推理',
-  '人车共生协议',
+  'Cockpit simulation kernel',
+  'Eva rule engine',
+  'L2 assistance policy chain',
+  'MediaPipe Vision model · on-device inference',
+  'Human-car symbiosis protocol',
 ];
 
 interface BootSplashProps {
@@ -41,7 +41,7 @@ export default function BootSplash({ onDone }: BootSplashProps) {
     <div
       className={`boot-splash${leaving ? ' leaving' : ''}`}
       role="status"
-      aria-label="座舱启动自检"
+      aria-label="Cockpit boot self-check"
       onClick={skip}
     >
       <div className="boot-face" aria-hidden="true">
@@ -50,8 +50,8 @@ export default function BootSplash({ onDone }: BootSplashProps) {
           <span className="eye" />
         </div>
       </div>
-      <h2>EVA · 智能座舱</h2>
-      <p className="boot-slogan">看见原因 · 闭环解决</p>
+      <h2>EVA · Smart Cockpit</h2>
+      <p className="boot-slogan">From Assisted Driving to Human-Car Symbiosis</p>
       <ul className="boot-checks">
         {BOOT_SEQUENCE.map((item, k) => (
           <li key={item} className={k < lit ? 'on' : ''}>
@@ -64,7 +64,7 @@ export default function BootSplash({ onDone }: BootSplashProps) {
         <i style={{ width: `${(lit / BOOT_SEQUENCE.length) * 100}%` }} />
       </div>
       <button type="button" className="boot-skip" onClick={skip}>
-        跳过
+        Skip
       </button>
     </div>
   );

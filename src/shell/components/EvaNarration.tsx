@@ -6,9 +6,9 @@ import { useTts } from '../hooks/useTts';
 
 function fallbackText(transport: DemoTransportState, step: DemoStep | null): string {
   if (step) return step.note;
-  if (transport === 'paused') return '现场已冻结。继续时，我会从这一刻接着讲。';
-  if (transport === 'completed') return '闭环完成：我看见原因、协助解决，也确认了结果。';
-  return '准备就绪。我会用一次完整闭环，讲清视觉如何从检测走向行动。';
+  if (transport === 'paused') return 'The scene is frozen. I will continue from this exact moment.';
+  if (transport === 'completed') return 'Loop complete: I saw the cause, helped resolve it, and verified the outcome.';
+  return 'Ready. One complete loop will show how vision moves from detection to action.';
 }
 
 export default function EvaNarration({

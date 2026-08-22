@@ -1,15 +1,15 @@
 import type { CockpitActions, CockpitState, ContextStage } from '../../core';
 
-const LOOP_STAGES: ContextStage[] = ['看见', '理解', '行动', '确认'];
+const LOOP_STAGES: ContextStage[] = ['See', 'Understand', 'Act', 'Verify'];
 
 const PHASE_LABEL: Record<CockpitState['context']['phase'], string> = {
-  idle: '等待情境输入',
-  observed: '已建立语义记忆',
-  searching: '正在观察寻找行为',
-  assisting: '正在协助解决原因',
-  verified: '风险已视觉确认解除',
-  'exit-check': '正在进行离车检查',
-  'exit-reminded': '离车提醒已完成',
+  idle: 'Waiting for context input',
+  observed: 'Semantic memory established',
+  searching: 'Observing search behavior',
+  assisting: 'Resolving the cause',
+  verified: 'Risk visually verified as cleared',
+  'exit-check': 'Running exit check',
+  'exit-reminded': 'Exit reminder complete',
 };
 
 interface ContextPanelProps {
@@ -33,16 +33,16 @@ export default function ContextPanel({ snap, act, demoRunning, onToggleDemo }: C
   return (
     <section className="panel context-panel" aria-labelledby="context-title" data-phase={context.phase}>
       <div className="context-heading">
-        <h2 className="panel-title" id="context-title"><span className="dot" aria-hidden="true" />情境时间轨</h2>
-        <span className="context-provenance" title="物品位置来自透明标注的模拟视觉事件；驾驶员 DMS 可真实运行">
-          物品输入 · 模拟
+        <h2 className="panel-title" id="context-title"><span className="dot" aria-hidden="true" />Context Timeline</h2>
+        <span className="context-provenance" title="Object locations are simulated vision events; driver DMS can run live">
+          OBJECT INPUT · SIMULATED
         </span>
       </div>
 
       <div
         className="loop-rail"
         role="img"
-        aria-label={`闭环阶段：${LOOP_STAGES.map((stage) => `${stage}${reached.has(stage) ? '已完成' : '未完成'}`).join('，')}`}
+        aria-label={`Loop stages: ${LOOP_STAGES.map((stage) => `${stage} ${reached.has(stage) ? 'complete' : 'pending'}`).join(', ')}`}
       >
         {LOOP_STAGES.map((stage, index) => (
           <div
@@ -56,45 +56,45 @@ export default function ContextPanel({ snap, act, demoRunning, onToggleDemo }: C
       </div>
 
       <div className="context-now">
-        <span>当前情境</span>
+        <span>CURRENT CONTEXT</span>
         <strong>{context.cause ?? PHASE_LABEL[context.phase]}</strong>
-        <p>{context.assistance ?? '等待视觉事件与驾驶员状态形成关联。'}</p>
+        <p>{context.assistance ?? 'Waiting for vision events to connect with driver state.'}</p>
       </div>
 
       <div className="context-split">
         <div>
-          <div className="context-subhead"><span>语义记忆</span><b>{context.memory.length}</b></div>
+          <div className="context-subhead"><span>SEMANTIC MEMORY</span><b>{context.memory.length}</b></div>
           <div className="memory-list">
             {memory.length ? memory.map((item) => (
               <div className="memory-row" key={item.id}>
                 <span><b>{item.label}</b><small>{item.location}</small></span>
                 <i>{Math.round(item.confidence * 100)}%</i>
               </div>
-            )) : <p className="context-empty">自动演示开始后，关键物品会出现在这里。</p>}
+            )) : <p className="context-empty">Key objects appear here after the loop begins.</p>}
           </div>
         </div>
 
         <div>
-          <div className="context-subhead"><span>最近事件</span><b>{context.events.length}</b></div>
+          <div className="context-subhead"><span>RECENT EVENTS</span><b>{context.events.length}</b></div>
           <div className="event-list" aria-live="polite">
             {events.length ? events.map((event) => (
               <div className="event-row" key={event.id}>
                 <i>{event.stage}</i>
                 <span>{event.text}</span>
               </div>
-            )) : <p className="context-empty">不记录视频，只显示可解释的语义事件。</p>}
+            )) : <p className="context-empty">No video is stored; only explainable semantic events appear here.</p>}
           </div>
         </div>
       </div>
 
       <div className="context-actions">
         <button type="button" className={`btn${demoRunning ? ' active' : ''}`} onClick={onToggleDemo}>
-          {demoRunning ? '■ 停止闭环' : '▶ 运行闭环'}
+          {demoRunning ? 'Stop Loop' : 'Run Loop'}
         </button>
         <button type="button" className="btn" disabled={!context.memory.length} onClick={() => act.requestExitCheck()}>
-          离车检查
+          Exit Check
         </button>
-        <span>语义事件可删除、可关闭；原始画面不进入记忆。</span>
+        <span>Semantic events are removable and optional; raw frames never enter memory.</span>
       </div>
     </section>
   );

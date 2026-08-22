@@ -2,13 +2,26 @@
 
 本项目遵循 [Conventional Commits](https://www.conventionalcommits.org/)，提交历史即官方开发期内的迭代证据。
 
-## 0.7.0 —— EVA Vision Loop（情境记忆 · 原因理解 · 行动确认）
+## 0.9.0 —— 单一整车数字孪生主舞台（远端最新基线融合）
 
-- `feat(core)` 新增仅保存语义事件的车内物品记忆：物品、位置、重要度、置信度与最后出现时间保持 JSON 安全；物品输入固定标记 `simulated-event`，不保存原始画面
-- `feat(core)` DMS 分神信号与物品记忆形成原因闭环：识别“寻找停车卡”后播报具体位置、点亮主驾左侧阅读灯；视线回正后视觉确认风险解除并关闭灯；超过 4 秒仍沿用既有 L2 降级边界
-- `feat(demo)` 60 秒自动演示由三个松散场景重构为一条“看见—理解—行动—确认”主故事，加入离车重要度过滤；日常、疲劳与复杂路况继续保留为手动场景
-- `feat(ui)` 新增情境时间轨面板，展示四阶段进度、语义记忆、最近事件、输入来源与结果确认；首页叙事升级为 `See the cause. Close the loop.`
-- `test` 新增语义事件、原因关联、回正确认、离车重要度过滤 4 项内核回归，补充模拟视觉冷启动误报回归；自动剧本新增真实性边界断言，合计 48 项
+- `feat(twin)` 驾驶舱改为全屏整车数字孪生：复用 `geely.glb`，程序化重建座椅、驾驶员、EVA、视线、物品热点与阅读灯；10 个稳定 `DemoCue` 驱动电影镜头与橙/青语义反馈，WebGL/模型失败完整回退二维整车舞台
+- `feat(ui)` 不切双视图：原项目 EVA/驾驶员与 DMS/L2/座舱能力压缩为左右边缘 HUD，详细感知/推理/执行证据集中到键盘可操作抽屉；桌面单视口、移动端底部抽屉，所有用户可见文案统一英文
+- `feat(runtime)` 1.2 秒非阻塞入场遮罩 + 可暂停单时间轴；ready/paused/completed 冻结仿真与路线，模型解码长阻塞不会跳过剧情步骤；首页 CTA 舞台就绪后自动开演
+- `fix(3d)` 外部广角隐藏程序化座舱，消除透明排序导致的“座椅/EVA 穿出车身”；修复 Landing 单材质网格被误转成材质数组而不渲染的问题，并校准石墨金属材质与自动取景
+- `test` 回归增至 63 项（core 25 + vision 13 + shell/交互 25）；浏览器覆盖 1426×1114、1440×1000、390×844、减弱动态、WebGL 降级、英文文案、控制台/页面错误与完整 60 秒闭环
+
+## 0.8.0 —— 视觉情绪检测 × Eva 主动情绪关怀（6 态 · 零新增模型）
+
+- `feat(vision)` 情绪检测：复用 face_landmarker 的 blendshapes 输出（`outputFaceBlendshapes`），加权启发式纯函数 `classifyEmotion` 分 6 态（neutral/happy/sad/angry/surprised/drowsy，微笑抑制 angry 防误报）+ 10 帧多数投票平滑——零新增模型、零额外加载，离线可用；模拟信号按工况合成情绪（拥堵→angry / 高疲劳→drowsy / 情绪值高→happy / 低→sad），与真实模型走同一套指标管线
+- `feat(core)` Eva 主动情绪关怀：非 neutral 情绪稳定 ≥0.3 仿真分钟即主动开口——悲伤开导（暖氛围灯+轻音乐联动）/ 开心询问好事 / 堵车愤怒安抚（深呼吸建议 + L2 跟车兜底 + 切舒缓音乐）/ 困倦休息建议 / 惊讶轻确认；同一情绪只关怀一次 + 话题冷却 5 分钟防唠叨（`visionEmotion` 参数，reset 同步复位）
+- `feat(ui)` DMS 面板新增 Emotion (6-class) 指标格（emoji + 标签横跨两列，sad/drowsy/surprised 琥珀警示、angry 红色告警）
+- `test` 情绪分类（微笑/皱眉/抑制项/低强度回落）+ 平滑器多数投票 + 关怀规则（sad 联动/拥堵安抚/防唠叨/稳定期）共 8 项新增，合计 51 项全绿；浏览器实测：复杂路况拥堵时 sim 合成 angry → Eva 主动安抚话术 + 音乐自动切舒缓
+
+## 0.7.0 —— 全站界面文案英文化（国际展示 / 开源就绪）
+
+- `feat(i18n)` 全站 UI 文案切换为英文：内核播报/告警/休息选择分支（evaRules）、场景标签与描述、16 个座舱面板、Landing 首页、开机自检清单、自动演示讲解词、全部 aria/title、index.html（lang/title/description）
+- `feat(i18n)` 类型值级变更并全链路同步：EvaMode（Observing/Guarding/Intervening/Resting/Cautious）、MusicKind（Soft/Upbeat/News/Off）、氛围灯（Teal/Warm Amber）；指令解析改英文关键词（sleepy/hot/cold/music/massage/nav/rest/l2 on/off），演示剧本内指令同步；TTS 切 en-US 并自动选英文语音包
+- `test` 40 处绑定中文文案的断言同步更新，43 项全绿；代码注释与团队文档保留中文（工作语言不变）
 
 ## 0.6.0 —— Hero 真 3D 车模型（three.js · CC-BY 署名 · 容灾回退）
 

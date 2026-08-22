@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import CarModel from './CarModel';
 import './landing.css';
 
-/** 进入座舱：Landing → Digital Twin 的唯一入口（hash 路由，无路由库依赖） */
+/** Landing → Digital Twin handoff (hash route, no routing dependency). */
 function enterCockpit(autoDemo: boolean) {
   if (autoDemo) {
     try { window.sessionStorage.setItem('eva.autodemo', '1'); } catch { /* 隐私模式 */ }
@@ -13,29 +13,29 @@ function enterCockpit(autoDemo: boolean) {
 const FEATURES = [
   {
     idx: '01 · SEE',
-    title: '人 / 物双通道感知',
-    desc: '真实 DMS 在端侧理解眨眼、PERCLOS 与头姿；物品位置以透明标注的模拟视觉事件进入原型，两类输入边界清楚。',
-    tags: ['端侧 DMS', '模拟物品事件', '零画面上传'],
+    title: 'Two-channel perception',
+    desc: 'Live on-device DMS understands blinks, PERCLOS and head pose. Object locations enter as transparently labeled simulated vision events.',
+    tags: ['On-device DMS', 'Simulated object events', 'No frame upload'],
   },
   {
     idx: '02 · UNDERSTAND',
-    title: '动态情境记忆',
-    desc: '把“谁的物品、在哪里、后来发生了什么”保存为可解释语义事件，并将视线偏离关联到真实意图，而不是长期录像。',
-    tags: ['事件记忆', '原因关联', '语义而非视频'],
+    title: 'Dynamic context memory',
+    desc: 'EVA keeps explainable semantic events — whose object, where it was, and what happened next — then links gaze deviation to intent, not to stored video.',
+    tags: ['Event memory', 'Cause linking', 'Semantics, not video'],
   },
   {
     idx: '03 · CLOSE LOOP',
-    title: '行动与视觉确认',
-    desc: '告知停车卡位置、点亮对应阅读灯，再由 DMS 确认视线回正；超过安全边界仍触发 L2 降级与接管提醒。',
-    tags: ['精准协助', '结果确认', 'L2 安全边界'],
+    title: 'Action and visual verification',
+    desc: 'EVA gives the parking-card location and lights the right area. DMS then verifies eyes are back on road; L2 still degrades beyond the safety boundary.',
+    tags: ['Precise assistance', 'Outcome verification', 'L2 safety boundary'],
   },
 ];
 
 const STATS = [
-  { b: '4', span: '看见 / 理解 / 行动 / 确认' },
-  { b: '0', span: '原始画面进入记忆' },
-  { b: '1', span: '主故事 · 60 秒闭环' },
-  { b: '55', span: '内核、视觉与界面回归测试' },
+  { b: '4', span: 'See / Understand / Act / Verify' },
+  { b: '0', span: 'Raw frames stored in memory' },
+  { b: '1', span: 'Focused 60-second story' },
+  { b: '63', span: 'Core, vision and interaction tests' },
 ];
 
 /**
@@ -48,16 +48,16 @@ const STATS = [
 export default function Landing() {
   useEffect(() => {
     document.body.classList.add('landing-body');
-    document.title = 'EVA Vision Loop — 看见原因，闭环解决';
+    document.title = 'EVA Vision Loop — See the cause. Close the loop.';
     return () => {
       document.body.classList.remove('landing-body');
-      document.title = 'Eva · 智能座舱';
+      document.title = 'EVA · Smart Cockpit';
     };
   }, []);
 
   return (
     <div className="landing">
-      <nav className="la-nav" aria-label="主导航">
+      <nav className="la-nav" aria-label="Main navigation">
         <a className="la-logo" href="#/" onClick={(e) => { e.preventDefault(); window.location.hash = ''; }}>
           <b>EVA</b>
           <span>SMART COCKPIT</span>
@@ -69,7 +69,7 @@ export default function Landing() {
           <a href="#about">About</a>
         </div>
         <button type="button" className="la-btn primary small" onClick={() => enterCockpit(false)}>
-          进入数字孪生
+          Enter Digital Twin
         </button>
       </nav>
 
@@ -81,15 +81,15 @@ export default function Landing() {
             Close the loop.
           </h1>
           <p className="la-slogan">
-            视觉情境闭环座舱智能体——不只判断驾驶员是否疲劳或分心，
-            更理解车内人、物、动作与时间的关系：找到原因、协助解决，并确认风险解除。
+            A vision-context cockpit agent that goes beyond fatigue and distraction detection.
+            It understands how people, objects, actions and time relate — then resolves the cause and verifies the outcome.
           </p>
           <div className="la-cta">
             <button type="button" className="la-btn primary" onClick={() => enterCockpit(true)}>
-              观看 60 秒闭环
+              Watch the 60s Loop
             </button>
             <button type="button" className="la-btn ghost" onClick={() => enterCockpit(false)}>
-              进入数字孪生
+              Enter Digital Twin
             </button>
           </div>
         </div>
@@ -100,8 +100,8 @@ export default function Landing() {
 
       <section className="la-section" id="features" aria-labelledby="la-features">
         <div className="la-section-head">
-          <h2 id="la-features">检测不是终点</h2>
-          <p>看见 → 理解 → 行动 → 确认，一条可解释的数据流闭合现实问题。</p>
+          <h2 id="la-features">Detection is not the destination</h2>
+          <p>See → Understand → Act → Verify. One explainable flow that closes a real-world loop.</p>
         </div>
         <div className="la-cards">
           {FEATURES.map((f) => (
@@ -117,32 +117,33 @@ export default function Landing() {
 
       <section className="la-section" id="demo" aria-labelledby="la-demo">
         <div className="la-section-head">
-          <h2 id="la-demo">一条 60 秒闭环</h2>
-          <p>只讲清一个问题：驾驶员为什么分心，EVA 如何把原因真正解决。</p>
+          <h2 id="la-demo">One 60-second loop</h2>
+          <p>One focused question: why did the driver look away, and how does EVA resolve the actual cause?</p>
         </div>
         <div className="la-run">
           <div>
-            <h3>从“请专心”到“不用找”</h3>
+            <h3>From “pay attention” to “you do not need to search”</h3>
             <p>
-              EVA 记住停车卡位置；驾驶员转头寻找时，DMS 发现注意力风险，情境内核识别原因，
-              告知位置并点亮阅读灯，最后确认视线回正。离车时只提醒电脑包和手机等重要物品。
+              EVA remembers the parking card. When the driver looks for it, DMS detects the attention risk,
+              the context engine links the cause, gives the location, lights the area and verifies eyes are back on road.
+              At exit, only important items such as the laptop bag and phone trigger a reminder.
             </p>
             <div className="scenarios">
-              <i>看见事件</i>
-              <i>理解原因</i>
-              <i>确认结果</i>
+              <i>See the event</i>
+              <i>Understand the cause</i>
+              <i>Verify the outcome</i>
             </div>
           </div>
           <button type="button" className="la-btn primary" onClick={() => enterCockpit(true)}>
-            自动开演
+            Start the Story
           </button>
         </div>
       </section>
 
       <section className="la-section" id="run" aria-labelledby="la-run">
         <div className="la-section-head">
-          <h2 id="la-run">用边界建立可信度</h2>
-          <p>真实 DMS 与模拟物品事件分层展示；零 DOM 内核让每一步都可测试、可解释。</p>
+          <h2 id="la-run">Trust starts with clear boundaries</h2>
+          <p>Live DMS and simulated object events are separated visibly; a zero-DOM core keeps every step testable and explainable.</p>
         </div>
         <div className="la-stats">
           {STATS.map((s) => (
@@ -153,25 +154,25 @@ export default function Landing() {
 
       <section className="la-section" id="about" aria-labelledby="la-about">
         <div className="la-section-head">
-          <h2 id="la-about">关于 EVA</h2>
-          <p>L2 组合辅助驾驶定位 · 语义记忆 · 本地优先 · 无外部服务依赖</p>
+          <h2 id="la-about">About EVA</h2>
+          <p>L2 combined assistance · Semantic memory · Local first · No runtime service dependency</p>
         </div>
         <div className="la-about">
           <p>
-            <strong>EVA 定位于 L2 组合辅助驾驶</strong>（驾驶员监测 + 自适应巡航 + 车道居中）：
-            系统在车道内辅助转向与加减速，驾驶员始终是驾驶责任的主体，需保持监管并随时准备接管。
+            <strong>EVA is positioned as an L2 combined-assistance system</strong> (driver monitoring, adaptive cruise and lane centering).
+            The driver always remains responsible, must supervise the road and be ready to take over.
           </p>
           <ul>
-            <li>摄像头画面仅在本设备浏览器内推理，不采集、不上传任何影像；</li>
-            <li>物品位置使用透明标注的模拟视觉事件；原型不宣称已实现通用物体识别或人物归属判断；</li>
-            <li>视觉模型与 WASM 运行时自托管，断网可演示，多源容灾 + 模拟信号回退；</li>
-            <li>前端组件、样式与渲染逻辑由本团队从零实现；首页 3D 车模型为 CC-BY 第三方资源（已署名致谢，见 AI_USAGE.md）。</li>
+            <li>Camera frames are processed only in this browser and are never collected or uploaded.</li>
+            <li>Object locations use transparently labeled simulated vision events; the prototype does not claim general object recognition or ownership inference.</li>
+            <li>The vision model and WASM runtime are self-hosted, with multi-source recovery and a simulated-signal fallback.</li>
+            <li>Frontend components, styling and rendering were built by the team. The landing-page car is a credited CC-BY third-party asset; see AI_USAGE.md.</li>
           </ul>
         </div>
       </section>
 
       <footer className="la-footer">
-        EVA Vision Loop · 智能座舱 — 吉利黑客松原型开发赛道 · 官方开发期内从零搭建<br />
+        EVA Vision Loop · Smart Cockpit — Geely Hackathon Prototype Track · Built from scratch during the official development window<br />
         Driver Monitoring runs fully on-device. L2 is assistance, not autonomy — the driver stays in charge.<br />
         Hero car model: “geelyblackglb” by{' '}
         <a href="https://sketchfab.com/3d-models/geelyblackglb-602e7f7cab6d435ab3c022ecaadceb56" target="_blank" rel="noreferrer noopener">crivero</a>{' '}

@@ -18,38 +18,37 @@ export default function TopBar({ snap, fontScale, onZoom, highContrast, onToggle
     return () => window.clearInterval(iv);
   }, []);
 
-  const time = now.toLocaleTimeString('zh-CN', { hour12: false });
+  const time = now.toLocaleTimeString('en-GB', { hour12: false });
 
   return (
     <header className="topbar">
       <div className="brand">
-        <h1><a href="#/" title="返回品牌首页" style={{ color: 'inherit', textDecoration: 'none' }}>Eva · 智能座舱</a></h1>
-        <span className="slogan">看见原因 · 闭环解决</span>
+        <h1><a href="#/" title="Back to the brand homepage" style={{ color: 'inherit', textDecoration: 'none' }}>Eva · Smart Cockpit</a></h1>
+        <span className="slogan">From Assisted Driving to Human-Car Symbiosis</span>
       </div>
-      <span className="chip l2" title="L2 辅助驾驶：驾驶员始终监管">
-        {snap.drive.auto ? '● L2 辅助驾驶中' : '○ 人工驾驶'}
+      <span className="chip l2" title="L2 assisted driving: the driver always supervises">
+        {snap.drive.auto ? '● L2 Assisted Driving' : '○ Manual Driving'}
       </span>
-      <span className="chip" title="驾驶员监测系统：眨眼 / PERCLOS / 头部姿态">机器视觉 DMS</span>
-      <span className="chip" title="物品位置以语义事件记录；比赛原型为模拟输入">情境记忆 · 语义</span>
-      <span className="chip" title="吉利全域 AI OS 底座">全域 AI OS</span>
+      <span className="chip" title="Driver monitoring: blinks / PERCLOS / head pose">Vision DMS</span>
+      <span className="chip" title="Geely full-domain AI OS foundation">Full-Domain AI OS</span>
 
-      <div className="a11y-group" role="group" aria-label="无障碍设置">
-        <button type="button" className="btn small" onClick={() => onZoom(-1)} aria-label="减小字号">A−</button>
-        <button type="button" className="btn small" onClick={() => onZoom(0)} aria-label="恢复默认字号" title={`当前 ${Math.round(fontScale * 100)}%`}>A</button>
-        <button type="button" className="btn small" onClick={() => onZoom(1)} aria-label="增大字号">A+</button>
-        <button type="button" className={`btn small${highContrast ? ' active' : ''}`} aria-pressed={highContrast} onClick={onToggleContrast}>高对比</button>
+      <div className="a11y-group" role="group" aria-label="Accessibility settings">
+        <button type="button" className="btn small" onClick={() => onZoom(-1)} aria-label="Decrease font size">A−</button>
+        <button type="button" className="btn small" onClick={() => onZoom(0)} aria-label="Reset font size" title={`Current ${Math.round(fontScale * 100)}%`}>A</button>
+        <button type="button" className="btn small" onClick={() => onZoom(1)} aria-label="Increase font size">A+</button>
+        <button type="button" className={`btn small${highContrast ? ' active' : ''}`} aria-pressed={highContrast} onClick={onToggleContrast}>Contrast</button>
         <button
           type="button"
           className={`btn small${voiceOn ? ' active' : ''}`}
           aria-pressed={voiceOn}
           onClick={onToggleVoice}
-          title="Eva 语音播报（本地合成，可随时静音）"
+          title="Eva voice announcements (local synthesis, mute anytime)"
         >
-          {voiceOn ? '🔊 语音' : '🔇 静音'}
+          {voiceOn ? '🔊 Voice' : '🔇 Muted'}
         </button>
       </div>
 
-      <span className="clock" aria-label={`当前时间 ${time}`}>{time}</span>
+      <span className="clock" aria-label={`Current time ${time}`}>{time}</span>
     </header>
   );
 }

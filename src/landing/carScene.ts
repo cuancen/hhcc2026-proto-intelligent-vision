@@ -79,6 +79,7 @@ export function mountCarScene(canvas: HTMLCanvasElement, opts: CarSceneOptions):
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
   renderer.outputColorSpace = SRGBColorSpace;
   renderer.toneMapping = ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.02;
   renderer.shadowMap.enabled = false; // 688k 三角面：不用阴影贴图，用贴地软阴影图
 
   const scene = new Scene();
@@ -91,13 +92,13 @@ export function mountCarScene(canvas: HTMLCanvasElement, opts: CarSceneOptions):
   pmrem.dispose();
 
   // 灯光：暖白主光 + 品牌橙轮廓光（呼应 Landing 红橙光晕）
-  const key = new DirectionalLight(0xfff2e8, 2.4);
+  const key = new DirectionalLight(0xfff2e8, 2.2);
   key.position.set(4, 6, 3);
   scene.add(key);
-  const rim = new DirectionalLight(BRAND_ORANGE, 2.0);
+  const rim = new DirectionalLight(BRAND_ORANGE, 1.8);
   rim.position.set(-5, 2.2, -4);
   scene.add(rim);
-  const fill = new DirectionalLight(0x8fb4ff, 0.7);
+  const fill = new DirectionalLight(0x8fb4ff, 0.6);
   fill.position.set(-3, 1.2, 5);
   scene.add(fill);
 
@@ -142,22 +143,27 @@ export function mountCarScene(canvas: HTMLCanvasElement, opts: CarSceneOptions):
     const model = gltf.scene;
     const replaced: MeshStandardMaterial[] = [];
     const paint = new MeshStandardMaterial({
-      color: 0xffffff,
-      metalness: 0.25,
-      roughness: 0.35,
-      envMapIntensity: 1.15,
+      color: 0x2e3946,
+      metalness: 0.72,
+      roughness: 0.29,
+      envMapIntensity: 1.18,
     });
 
     model.traverse((obj) => {
       const mesh = obj as Mesh;
       if (!mesh.isMesh) return;
-      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-      mesh.material = mats.map((m) => {
+      const currentMaterial = mesh.material;
+      const hasMaterialArray = Array.isArray(currentMaterial);
+      const mats: Material[] = hasMaterialArray ? currentMaterial : [currentMaterial];
+      const nextMaterials = mats.map((m) => {
         const std = m as MeshStandardMaterial;
         if (keepOriginal(std)) return std;
         replaced.push(std);
         return paint;
       });
+      // Three.js only renders a material array through geometry groups. Turning a
+      // single-material mesh into an array leaves ungrouped GLB meshes invisible.
+      mesh.material = hasMaterialArray ? nextMaterials : nextMaterials[0];
     });
     // 被替换的原材质立即释放（贴图/程序纹理一并清掉）
     replaced.forEach(disposeMaterial);
@@ -167,7 +173,7 @@ export function mountCarScene(canvas: HTMLCanvasElement, opts: CarSceneOptions):
     const size = box.getSize(new Vector3());
     const center = box.getCenter(new Vector3());
     model.position.sub(center);
-    const radius = Math.max(size.length() / 2, 1e-4);
+    const radius = Math.max(size.x, size.y, size.z, 1e-4) / 2;
 
     const pivot = new Group();
     pivot.add(model);
@@ -192,7 +198,7 @@ export function mountCarScene(canvas: HTMLCanvasElement, opts: CarSceneOptions):
         Math.PI * 0.45,
         Math.atan(Math.tan(vHalf) * Math.max(camera.aspect, 0.1)),
       );
-      const distance = Math.max(radius / Math.sin(vHalf), radius / Math.sin(hHalf)) * 1.12;
+      const distance = Math.max(radius / Math.sin(vHalf), radius / Math.sin(hHalf)) * 1.03;
       camera.position.set(
         Math.sin(azimuth) * Math.cos(elevation) * distance,
         Math.sin(elevation) * distance + radius * 0.05,

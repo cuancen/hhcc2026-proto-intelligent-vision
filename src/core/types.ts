@@ -2,11 +2,13 @@ import type { ScenarioId } from './params';
 
 export type RoadKind = 'city' | 'highway' | 'congested';
 export type AlertLevel = 'info' | 'warn' | 'urgent';
-export type EvaMode = '观察中' | '守护中' | '干预中' | '休息引导中' | '谨慎模式';
-export type MusicKind = '轻音乐' | '动感' | '新闻' | '关闭';
+/** 基于 Face Landmarker blendshapes 的端侧视觉情绪六态。 */
+export type EmotionId = 'neutral' | 'happy' | 'sad' | 'angry' | 'surprised' | 'drowsy';
+export type EvaMode = 'Observing' | 'Guarding' | 'Intervening' | 'Resting' | 'Cautious';
+export type MusicKind = 'Soft' | 'Upbeat' | 'News' | 'Off';
 export type CabinObjectId = 'parking-card' | 'phone' | 'laptop-bag' | 'water-bottle';
 export type ContextPhase = 'idle' | 'observed' | 'searching' | 'assisting' | 'verified' | 'exit-check' | 'exit-reminded';
-export type ContextStage = '看见' | '理解' | '行动' | '确认' | '提醒';
+export type ContextStage = 'See' | 'Understand' | 'Act' | 'Verify' | 'Remind';
 export type ObjectImportance = 'normal' | 'important';
 
 export interface DriveState {
@@ -38,6 +40,8 @@ export interface VisionSample {
   pitch: number;
   /** 眼睛纵横比（左右均值，展示用） */
   ear: number;
+  /** 面部情绪：与疲劳/PERCLOS 并行，不替代安全判断。 */
+  emotion: EmotionId;
   source: 'model' | 'sim';
 }
 
@@ -58,7 +62,7 @@ export interface CabinState {
   seatMassage: boolean;
   ambient: string;
   entertainmentBlocked: boolean;
-  readingLight: '关闭' | '主驾左侧';
+  readingLight: 'Off' | 'Driver left';
 }
 
 /** 物品视觉仅以语义事件进入内核；比赛原型明确标记为模拟输入，不保存原始画面。 */

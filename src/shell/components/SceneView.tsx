@@ -179,25 +179,25 @@ export default function SceneView({ liveState }: SceneViewProps) {
   return (
     <section className="panel" aria-labelledby="scene-title" style={{ padding: 10 }}>
       <h2 className="panel-title" id="scene-title" style={{ marginBottom: 8 }}>
-        <span className="dot" aria-hidden="true" />态势主视图
+        <span className="dot" aria-hidden="true" />Situation View
         <span style={{ marginLeft: 'auto', textTransform: 'none', letterSpacing: 0 }} className="chip">
-          行驶 {d.elapsedMin.toFixed(0)}′ · 剩余 {d.routeKm.toFixed(1)} km
+          Driving {d.elapsedMin.toFixed(0)}′ · {d.routeKm.toFixed(1)} km left
         </span>
       </h2>
       <div className="scene-wrap" ref={wrapRef}>
-        <canvas ref={canvasRef} role="img" aria-label={`态势视图：${d.night ? '夜间' : '白天'}${d.rain ? '雨天' : ''}，车速 ${Math.round(d.speed)} 公里每小时`} />
+        <canvas ref={canvasRef} role="img" aria-label={`Situation view: ${d.night ? 'night' : 'day'}${d.rain ? ', rain' : ''}, speed ${Math.round(d.speed)} kilometers per hour`} />
         <div className="scene-top">
-          <span className="chip">{d.night ? '🌙 夜间' : '☀ 白昼'}</span>
-          {d.rain && <span className="chip warn">☔ 降雨</span>}
-          {d.curve > 0.35 && <span className="chip warn">↩ 弯道</span>}
-          {d.leadBrake && <span className="chip warn">⚠ 前车急刹</span>}
+          <span className="chip">{d.night ? '🌙 Night' : '☀ Day'}</span>
+          {d.rain && <span className="chip warn">☔ Rain</span>}
+          {d.curve > 0.35 && <span className="chip warn">↩ Curve</span>}
+          {d.leadBrake && <span className="chip warn">⚠ Lead braking</span>}
         </div>
         <div className="hud">
           <div className="speed" aria-hidden="true">
             {Math.round(d.speed)}<small> km/h</small>
           </div>
           <span className={`badge ${d.l2Degraded ? 'l2deg' : d.auto ? 'l2on' : ''}`}>
-            {d.l2Degraded ? '⚠ L2 已降级 · 请接管观察' : d.auto ? '● L2 辅助驾驶 · 监管中' : '○ 人工驾驶'}
+            {d.l2Degraded ? '⚠ L2 degraded · take over' : d.auto ? '● L2 assist · supervising' : '○ Manual driving'}
           </span>
         </div>
       </div>

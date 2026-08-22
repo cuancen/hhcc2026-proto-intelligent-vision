@@ -16,9 +16,9 @@ export default function ControlBar({ snap, act, speed, setSpeed, autoDemoRunning
   const [fat, setFat] = useState(20);
 
   return (
-    <footer className="controlbar" aria-label="演示控制">
-      <div className="grp" role="group" aria-label="演示场景">
-        <span className="grp-label">场景</span>
+    <footer className="controlbar" aria-label="Demo controls">
+      <div className="grp" role="group" aria-label="Demo scenes">
+        <span className="grp-label">Scene</span>
         {(Object.keys(SCENARIOS) as ScenarioId[]).map((id) => (
           <button
             key={id}
@@ -35,22 +35,22 @@ export default function ControlBar({ snap, act, speed, setSpeed, autoDemoRunning
 
       <div className="sep" aria-hidden="true" />
 
-      <div className="grp" role="group" aria-label="手动事件注入">
-        <span className="grp-label">事件</span>
-        <button type="button" className={`btn${snap.drive.rain ? ' active' : ''}`} aria-pressed={snap.drive.rain} onClick={() => act.setRain(!snap.drive.rain)}>☔ 雨</button>
-        <button type="button" className={`btn${snap.drive.night ? ' active' : ''}`} aria-pressed={snap.drive.night} onClick={() => act.setNight(!snap.drive.night)}>🌙 夜</button>
-        <button type="button" className="btn" onClick={() => act.injectLeadBrake()}>⚠ 前车急刹</button>
+      <div className="grp" role="group" aria-label="Inject events manually">
+        <span className="grp-label">Events</span>
+        <button type="button" className={`btn${snap.drive.rain ? ' active' : ''}`} aria-pressed={snap.drive.rain} onClick={() => act.setRain(!snap.drive.rain)}>☔ Rain</button>
+        <button type="button" className={`btn${snap.drive.night ? ' active' : ''}`} aria-pressed={snap.drive.night} onClick={() => act.setNight(!snap.drive.night)}>🌙 Night</button>
+        <button type="button" className="btn" onClick={() => act.injectLeadBrake()}>⚠ Lead brake</button>
       </div>
 
       <div className="sep" aria-hidden="true" />
 
       <div className="grp">
         <div className="slider-row">
-          <label htmlFor="fat-slider">疲劳注入</label>
+          <label htmlFor="fat-slider">Fatigue inject</label>
           <input
             id="fat-slider"
             type="range" min={0} max={100} value={fat}
-            aria-valuetext={`仿真疲劳 ${fat}%（综合 ${Math.round(snap.driver.fatigue)}%）`}
+            aria-valuetext={`simulated fatigue ${fat}% (fused ${Math.round(snap.driver.fatigue)}%)`}
             onChange={(e) => { const v = +e.target.value; setFat(v); act.setSimFatigue(v); }}
           />
           <span aria-hidden="true">{fat}%</span>
@@ -59,23 +59,23 @@ export default function ControlBar({ snap, act, speed, setSpeed, autoDemoRunning
 
       <div className="sep" aria-hidden="true" />
 
-      <div className="grp" role="group" aria-label="自动演示与速率">
+      <div className="grp" role="group" aria-label="Auto demo and speed">
         <button
           type="button"
           className={`btn${autoDemoRunning ? ' active' : ''}`}
           aria-pressed={autoDemoRunning}
           onClick={onToggleAutoDemo}
-          title="自动走完 EVA Vision Loop 情境闭环（约 60 秒），快捷键 D"
+          title="Run all three scenes automatically (~60 s); hotkey D"
         >
-          {autoDemoRunning ? '■ 停止演示' : '▶ 自动演示'}
+          {autoDemoRunning ? '■ Stop demo' : '▶ Auto demo'}
         </button>
         {[0.5, 1, 2].map((v) => (
           <button key={v} type="button" className={`btn small${speed === v ? ' active' : ''}`} aria-pressed={speed === v} onClick={() => setSpeed(v)}>
             ×{v === 0.5 ? '½' : v}
           </button>
         ))}
-        <button type="button" className="btn small" onClick={() => act.reset()} title="复位当前场景">⟲ 复位</button>
-        <span className="grp-label" style={{ marginLeft: 4 }}>快捷键 1/2/3/4 场景 · D 演示 · L 辅助</span>
+        <button type="button" className="btn small" onClick={() => act.reset()} title="Reset current scene">⟲ Reset</button>
+        <span className="grp-label" style={{ marginLeft: 4 }}>Hotkeys 1/2/3 scenes · D demo · L assist</span>
       </div>
     </footer>
   );

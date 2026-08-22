@@ -58,7 +58,7 @@ export default function TwinStage({
           readyRef.current?.();
         })
         .catch((error: unknown) => {
-          console.warn('[TwinStage] 三维场景不可用，已切换二维安全模式：', error);
+          console.warn('[TwinStage] 3D unavailable; using the 2D safe mode:', error);
           if (dead) return;
           setRendererState('fallback');
           readyRef.current?.();
@@ -88,7 +88,7 @@ export default function TwinStage({
       data-accent={frame.accent}
     >
       <div className={`twin-fallback${rendererState === 'three' ? ' hidden' : ''}`} aria-hidden={rendererState === 'three'}>
-        <svg viewBox="0 0 720 390" role="img" aria-label="EVA 整车数字孪生二维安全模式">
+        <svg viewBox="0 0 720 390" role="img" aria-label="EVA vehicle digital twin in 2D safe mode">
           <defs>
             <linearGradient id="twin-car-fill" x1="0" x2="1">
               <stop offset="0" stopColor="currentColor" stopOpacity="0.04" />
@@ -112,11 +112,11 @@ export default function TwinStage({
         ref={canvasRef}
         className="twin-canvas"
         role="img"
-        aria-label={`EVA 整车数字孪生，当前镜头 ${frame.camera}`}
+        aria-label={`EVA vehicle digital twin, current camera ${frame.camera}`}
       />
       <div className="twin-renderer-state" role="status">
         <span aria-hidden="true" />
-        {rendererState === 'three' ? '实时三维孪生' : rendererState === 'fallback' ? '二维安全模式' : '正在建立数字孪生'}
+        {rendererState === 'three' ? 'LIVE 3D TWIN' : rendererState === 'fallback' ? '2D SAFE MODE' : 'BUILDING DIGITAL TWIN'}
       </div>
     </div>
   );

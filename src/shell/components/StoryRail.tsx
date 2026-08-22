@@ -1,7 +1,14 @@
 import type { ContextStage } from '../../core';
 import type { DemoCue, DemoTransportState } from '../autoDemo';
 
-const STAGES: readonly ContextStage[] = ['看见', '理解', '行动', '确认'];
+const STAGES: readonly ContextStage[] = ['See', 'Understand', 'Act', 'Verify'];
+const STAGE_LABEL: Record<ContextStage, string> = {
+  See: 'SEE',
+  Understand: 'UNDERSTAND',
+  Act: 'ACT',
+  Verify: 'VERIFY',
+  Remind: 'REMIND',
+};
 
 const CUE_STAGE: Record<DemoCue, number> = {
   boundary: 0,
@@ -32,7 +39,7 @@ export default function StoryRail({
   return (
     <ol
       className="story-rail"
-      aria-label={`闭环进度：${STAGES.map((stage, index) => `${stage}${allDone || reached.has(stage) || index < current ? '完成' : index === current ? '进行中' : '未开始'}`).join('，')}`}
+      aria-label={`Loop progress: ${STAGES.map((stage, index) => `${STAGE_LABEL[stage]} ${allDone || reached.has(stage) || index < current ? 'complete' : index === current ? 'active' : 'pending'}`).join(', ')}`}
     >
       {STAGES.map((stage, index) => {
         const done = allDone || reached.has(stage) || index < current;
@@ -40,7 +47,7 @@ export default function StoryRail({
         return (
           <li key={stage} className={`${done ? 'done ' : ''}${active ? 'active' : ''}`}>
             <i aria-hidden="true">{String(index + 1).padStart(2, '0')}</i>
-            <span>{stage}</span>
+            <span>{STAGE_LABEL[stage]}</span>
           </li>
         );
       })}

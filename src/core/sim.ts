@@ -7,7 +7,7 @@ export function createState(scenario: CockpitState['scenario']): CockpitState {
   return {
     t: 0,
     scenario,
-    evaMode: '观察中',
+    evaMode: 'Observing',
     drive: {
       auto: false,
       speed: 0,
@@ -32,11 +32,11 @@ export function createState(scenario: CockpitState['scenario']): CockpitState {
     cabin: {
       temp: 24,
       fan: 1,
-      music: '轻音乐',
+      music: 'Soft',
       seatMassage: false,
-      ambient: '青碧',
+      ambient: 'Teal',
       entertainmentBlocked: false,
-      readingLight: '关闭',
+      readingLight: 'Off',
     },
     context: {
       phase: 'idle',

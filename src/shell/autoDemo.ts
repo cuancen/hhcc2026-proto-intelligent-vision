@@ -34,16 +34,16 @@ export const DEMO_DURATION_SEC = 60;
 
 /** 60 秒 EVA Vision Loop：每个节点只触发一次，同时驱动领域动作和电影镜头。 */
 export const DEMO_STEPS: readonly DemoStepDefinition[] = [
-  { sec: 0.5, cue: 'boundary', title: '输入透明', note: '驾驶员 DMS 可真实运行；物品位置为模拟视觉事件' },
-  { sec: 4, cue: 'observe-cabin', title: '看见 · 关键物品进入记忆', note: '只保留物品、位置与重要度，不保存原始画面' },
-  { sec: 9, cue: 'observe-phone', title: '位置随事件更新', note: '手机最后出现在无线充电板' },
-  { sec: 16, cue: 'search-intent', title: '驾驶员开始找卡', note: 'EVA 等待视线证据，不急于下结论' },
-  { sec: 19, cue: 'gaze-away', title: '视线持续向左下偏离', note: 'DMS 捕捉头姿与视线离开' },
-  { sec: 22, cue: 'cause-linked', title: '理解 · 找到分心原因', note: '视线方向与停车卡位置形成关联' },
-  { sec: 25, cue: 'assistance', title: '行动 · 直接解决问题', note: '播报位置并打开主驾左侧阅读灯' },
-  { sec: 30, cue: 'verified', title: '确认 · 视线已经回正', note: 'DMS 确认风险解除，阅读灯关闭' },
-  { sec: 46, cue: 'exit-filter', title: '只提醒重要物品', note: '电脑包与手机被点亮，普通水杯保持静默' },
-  { sec: 57, cue: 'completed', title: '闭环完成', note: '看见原因，行动解决，再确认结果' },
+  { sec: 0.5, cue: 'boundary', title: 'Transparent inputs', note: 'Driver DMS can run live; object locations are simulated vision events.' },
+  { sec: 4, cue: 'observe-cabin', title: 'See · Objects enter memory', note: 'Only object, location and importance are retained — never the raw frame.' },
+  { sec: 9, cue: 'observe-phone', title: 'Location updates over time', note: 'The phone was last seen on the wireless charging pad.' },
+  { sec: 16, cue: 'search-intent', title: 'The driver starts looking for a card', note: 'EVA waits for gaze evidence before drawing a conclusion.' },
+  { sec: 19, cue: 'gaze-away', title: 'Gaze remains down and left', note: 'DMS captures head pose and sustained eyes-off-road time.' },
+  { sec: 22, cue: 'cause-linked', title: 'Understand · Find the cause', note: 'The gaze vector now connects to the parking card location.' },
+  { sec: 25, cue: 'assistance', title: 'Act · Resolve the problem', note: 'EVA gives the location and opens the driver-side reading light.' },
+  { sec: 30, cue: 'verified', title: 'Verify · Eyes are back on road', note: 'DMS confirms the risk is cleared and the reading light turns off.' },
+  { sec: 46, cue: 'exit-filter', title: 'Remind only what matters', note: 'Laptop bag and phone light up; the ordinary water bottle stays silent.' },
+  { sec: 57, cue: 'completed', title: 'Loop complete', note: 'See the cause, act on it, then verify the outcome.' },
 ];
 
 export interface AutoDemoDeps {
@@ -100,11 +100,11 @@ export function runAutoDemo({
   const actions: ReadonlyArray<() => void> = [
     () => undefined,
     () => {
-      act.observeCabinObject({ id: 'parking-card', label: '停车卡', location: '左侧车门储物格', owner: '驾驶员', importance: 'normal', confidence: 0.94 });
-      act.observeCabinObject({ id: 'laptop-bag', label: '电脑包', location: '右后座', owner: '驾驶员', importance: 'important', confidence: 0.91 });
-      act.observeCabinObject({ id: 'water-bottle', label: '水杯', location: '杯架', owner: '驾驶员', importance: 'normal', confidence: 0.98 });
+      act.observeCabinObject({ id: 'parking-card', label: 'Parking card', location: 'in the left door pocket', owner: 'Driver', importance: 'normal', confidence: 0.94 });
+      act.observeCabinObject({ id: 'laptop-bag', label: 'Laptop bag', location: 'on the right rear seat', owner: 'Driver', importance: 'important', confidence: 0.91 });
+      act.observeCabinObject({ id: 'water-bottle', label: 'Water bottle', location: 'in the cup holder', owner: 'Driver', importance: 'normal', confidence: 0.98 });
     },
-    () => act.observeCabinObject({ id: 'phone', label: '手机', location: '无线充电板', owner: '驾驶员', importance: 'important', confidence: 0.96 }),
+    () => act.observeCabinObject({ id: 'phone', label: 'Phone', location: 'on the wireless charging pad', owner: 'Driver', importance: 'important', confidence: 0.96 }),
     () => act.beginObjectSearch('parking-card'),
     () => undefined,
     () => undefined,
